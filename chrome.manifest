@@ -1,0 +1,2 @@
+content     megthunderbird    chrome/content/
+overlay chrome://messenger/content/messengercompose/messengercompose.xul chrome://megthunderbird/content/send.xul
