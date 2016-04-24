@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<overlay id="sendoverlay"
+xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+    <script type="application/javascript" src="chrome://megthunderbird/content/js/jquery-2.2.3.min.js"/>
+    <script type="application/javascript" src="chrome://megthunderbird/content/js/qrcode.js"/>
+    <script type="application/javascript" src="chrome://megthunderbird/content/overlay.js"/>
+    <toolbar id="composeToolbar2" class="toolbar-primary chromeclass-toolbar">
+        <!-- Need to figure out how to put an image in front of this -->
+        <toolbarbutton id="meg-send" class="toolbarbutton-1 meg-custom" label="Send with MEG" oncommand="cmd_megSendButton()" tooltiptext="Send encrypted message via MEG"/>
+    </toolbar>
+</overlay>

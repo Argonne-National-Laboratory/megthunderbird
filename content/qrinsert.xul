@@ -1,0 +1,5 @@
+<?xml-stylesheet href="chrome://megthunderbird/skin/qrcode.css" type="text/css"?>
+<overlay id="qrinsert-overlay">
+    <vbox id="appcontent">
+    </vbox>
+</overlay>

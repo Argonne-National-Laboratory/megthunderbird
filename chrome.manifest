@@ -1,2 +1,4 @@
-content     megthunderbird    chrome/content/
+content megthunderbird content/
+skin megthunderbird classic/1.0 skin/
 overlay chrome://messenger/content/messengercompose/messengercompose.xul chrome://megthunderbird/content/send.xul
+overlay chrome://messenger/content/messengercompose/messengercompose.xul chrome://megthunderbird/content/qrinsert.xul
