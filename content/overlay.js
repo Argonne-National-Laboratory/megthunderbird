@@ -3,9 +3,6 @@
  */
 const Cu = Components.utils;
 
-// For some reason I can't use this because it can't find gre/modules/XPCOMUtils.jsm
-// Ok so the problem is something related to a file named log.js and it not being
-// in existence
 Cu.import("chrome://megthunderbird/content/modules/thunderbird-stdlib/SimpleStorage.js");
 //
 //let ss = SimpleStorage.createCpsStyle("megthunderbird");
