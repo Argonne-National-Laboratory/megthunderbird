@@ -17,12 +17,21 @@ let ss = SimpleStorage.createCpsStyle("megthunderbird");
 //}
 
 function bin2String(array) {
-  return String.fromCharCode.apply(String, array);
+    return String.fromCharCode.apply(String, array);
 }
 
 cmd_megSendButton = function() {
-    input = generateKeyData();
-    generateQRCode(bin2String(input));
+    arrayInput = generateKeyData();
+    strInput = transformDataForInput(arrayInput);
+    generateQRCode(strInput);
+}
+
+transformDataForInput = function(input) {
+    key = input[0];
+    iv = input[1];
+    keyStr = btoa(bin2String(key));
+    ivStr = btoa(bin2String(iv));
+    return keyStr.concat("&&", ivStr);
 }
 
 generateQRCode = function(input) {
@@ -33,6 +42,7 @@ generateQRCode = function(input) {
     imgs[0].style.display = "block";
     var editors = vbox.getElementsByTagName("editor");
     editors[0].parentNode.removeChild(editors[0]);
+    throw new Error(btoa(input));
 }
 
 //
@@ -53,10 +63,10 @@ generateQRCode = function(input) {
 
 generateKeyData = function() {
     var salt = randArr(8);
-	// Obviously going to change
+	// Obviously going to change. Probably something randomly generated
 	var pass = "foobar";
     pbe = GibberishAES.openSSLKey(GibberishAES.s2a(pass), salt);
-    return pbe.key.concat(pbe.iv);
+    return [pbe.key, pbe.iv];
 }
 
 randArr = function(num) {
