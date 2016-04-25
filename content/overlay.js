@@ -42,7 +42,6 @@ generateQRCode = function(input) {
     imgs[0].style.display = "block";
     var editors = vbox.getElementsByTagName("editor");
     editors[0].parentNode.removeChild(editors[0]);
-    throw new Error(btoa(input));
 }
 
 //
