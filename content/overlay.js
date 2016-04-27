@@ -1,70 +1,80 @@
 /**
  *
  */
+// I don't like globals but I don't think I can get around it here.
+var keyStr;
+var dbAESkey = "aeskeyStr";
 const Cu = Components.utils;
 
-Cu.import("chrome://megthunderbird/content/modules/thunderbird-stdlib/SimpleStorage.js");
+Cu.import("chrome://megthunderbird/content/db.js");
 
-let ss = SimpleStorage.createCpsStyle("megthunderbird");
-
-//window.addEventListener("load", function(e) {
-//	startup();
-//}, false);
-//
-//startup = function() {
-//	var megSend = document.getElementById("meg-send");
-//    // Do additional actions
-//}
+let ss = new Storage("megthunderbird");
+ss.init();
 
 function bin2String(array) {
     return String.fromCharCode.apply(String, array);
 }
 
 cmd_megSendButton = function() {
-    arrayInput = generateKeyData();
-    strInput = transformDataForInput(arrayInput);
-    generateQRCode(strInput);
+    if (!ss.has(dbAESkey)) {  // No QR code present. User must scan it
+        var input = generateKeyData();
+        transformDataForInput(input);
+        generateQRCode();
+    } else {  // QR code exists. Must transmit message
+
+    }
+}
+
+cmd_qrScanComplete = function() {
+    var vbox = document.getElementById("appcontent");
+    var img = vbox.getElementsByTagName("img")[0];
+    var canvas = vbox.getElementsByTagName("canvas")[0];
+    var completeButton = vbox.getElementsByTagName("button")[0];
+    // clean up all QR related stuff
+    vbox.removeChild(img);
+    vbox.removeChild(canvas);
+    vbox.removeChild(completeButton);
+    // Redisplay the editor. BUG - Unfortunately this displays a slight UI problem
+    // where some of the lines in To: will be hidden. This is merely cosmetic tho
+    // so I'm not going to bother with it.
+    vbox.getElementsByTagName("editor")[0].style.display = "block";
+    ss.set(dbAESkey, keyStr)
 }
 
 transformDataForInput = function(input) {
-    key = input[0];
-    iv = input[1];
+    var key = input[0];
+    var iv = input[1];
     keyStr = btoa(bin2String(key));
-    ivStr = btoa(bin2String(iv));
-    return keyStr.concat("&&", ivStr);
+    var ivStr = btoa(bin2String(iv));
+    keyStr = keyStr.concat("&&", ivStr);
 }
 
-generateQRCode = function(input) {
+generateQRCode = function() {
     var qrcode = new QRCode("appcontent");
-    qrcode.makeCode(input);
+    qrcode.makeCode(keyStr);
     var vbox = document.getElementById("appcontent");
-    var imgs = vbox.getElementsByTagName("img");
-    imgs[0].style.display = "block";
-    var editors = vbox.getElementsByTagName("editor");
-    editors[0].parentNode.removeChild(editors[0]);
+    var img = vbox.getElementsByTagName("img")[0];
+    img.style.display = "block";
+    vbox.getElementsByTagName("editor")[0].style.display = "none";
+    // TODO Complete styling of button
+    var button = document.createElement("button");
+    button.setAttribute("oncommand", "cmd_qrScanComplete()");
+    vbox.appendChild(button);
 }
 
-//
-//determineQRPrompt = function() {
-//    if (!ss.has(key) || !ss.has(iv)) {
-//        generated = generateKeyData();
-//        alert("foo");
-//    }
-//}
-//
-//transmitMessage = function() {
-//
-//}
-//
-//pollForEncrypted = function() {
-//
-//}
+transmitMessage = function() {
+
+}
+
+pollForEncrypted = function() {
+
+}
 
 generateKeyData = function() {
     var salt = randArr(8);
-	// Obviously going to change. Probably something randomly generated
-	var pass = "foobar";
-    pbe = GibberishAES.openSSLKey(GibberishAES.s2a(pass), salt);
+    // 25 characters max so 27 because 27 - 2 = 25.
+	var pass = Math.random().toString(36).substring(2, 27);
+    var pbe = GibberishAES.openSSLKey(GibberishAES.s2a(pass), salt);
     return [pbe.key, pbe.iv];
 }
 
