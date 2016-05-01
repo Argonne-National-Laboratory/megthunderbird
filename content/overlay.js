@@ -8,10 +8,12 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const b64encode = btoa
 const b64decode = atob
+
 // Of course this will change.
 const SERVER_URL = "http://grehm.us/megserver/"
 const DB_AES_KEY = "aeskeyStr";
 const DB_SALT_KEY = "salt";
+
 // I don't like globals but I don't think I can get around it here.
 var keyStr;
 var salt;
@@ -20,19 +22,24 @@ Cu.import('resource://gre/modules/Services.jsm');
 Cu.import("chrome://megthunderbird/content/db.js");
 
 let ss = new Storage("megthunderbird");
-ss.remove(DB_AES_KEY);
-ss.remove(DB_SALT_KEY);
+// XXX Remove when debugging finished
+//ss.remove(DB_AES_KEY);
+//ss.remove(DB_SALT_KEY);
 
 binToString = function(array) {
     return String.fromCharCode.apply(null, array);
 }
 
-function string2Bin(str) {
-  var result = [];
-  for (var i = 0; i < str.length; i++) {
-    result.push(str.charCodeAt(i).toString(2));
-  }
-  return result;
+function stringToBin(str) {
+    return str.split("").map(function(c) {
+        return c.charCodeAt(0);
+    });
+}
+
+function string2Bin ( str ) {
+    return str.split("").map( function( val ) {
+        return val.charCodeAt( 0 );
+    } );
 }
 
 getAESData = function() {
@@ -53,7 +60,7 @@ cmd_megSendButton = function() {
     } else {  // QR code exists. Must transmit message
         var text = getMailText();
         text = encryptText(text);
-        decryptText(text);
+        Cu.reportError(text);
         transmitDecryptedToServer(text);
         // Get it back from the server. Then send it to recipient.
     }
@@ -64,23 +71,23 @@ getMailText = function() {
     return editor.outputToString("text/plain", 4);
 }
 
+decryptText = function(text) {
+    var keyData = getAESData();
+    // This is not a generic Base64 implementation and is specifically
+    // designed to work on encoding / decoding data for use in these
+    // algorithms
+    text = GibberishAES.Base64.decode(text);
+    return GibberishAES.rawDecrypt(text, keyData.key, keyData.iv);
+}
+
 encryptText = function(text) {
     var keyData = getAESData();
-    // Kinda stealing some code straight out of GibberishAES
+    // Kinda stealing some code straight out of GibberishAES.
+    // we can add the implementation of writing out Salted__ later if we want
     var cipherBlocks = GibberishAES.rawEncrypt(
         GibberishAES.s2a(text), keyData.key, keyData.iv
     );
-	var saltBlock = [[83, 97, 108, 116, 101, 100, 95, 95].concat(keyData.salt)];
-    // Spells out 'Salted__'
-	cipherBlocks = saltBlock.concat(cipherBlocks);
-    return cipherBlocks;
-}
-
-decryptText = function(text) {
-    var keyData = getAESData();
-    var cryptArr = text.slice(16, text.length);
-    var string = GibberishAES.rawDecrypt(cryptArr, keyData.key, keyData.iv);
-    alert(string);
+    return GibberishAES.Base64.encode(cipherBlocks);
 }
 
 transmitDecryptedToServer = function(text) {
