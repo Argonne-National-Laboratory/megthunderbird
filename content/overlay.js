@@ -1,29 +1,126 @@
 /**
- *
+ * Provides an interface for the client to perform whatever actions it needs
+ * to interact with the MEG server
  */
+// Using aliases because btoa and atob are not readable. Cu seems to be canonical
+const Cu = Components.utils;
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const b64encode = btoa
+const b64decode = atob
+// Of course this will change.
+const SERVER_URL = "http://grehm.us/megserver/"
+const DB_AES_KEY = "aeskeyStr";
+const DB_SALT_KEY = "salt";
 // I don't like globals but I don't think I can get around it here.
 var keyStr;
-var dbAESkey = "aeskeyStr";
-const Cu = Components.utils;
+var salt;
 
+Cu.import('resource://gre/modules/Services.jsm');
 Cu.import("chrome://megthunderbird/content/db.js");
 
 let ss = new Storage("megthunderbird");
-ss.init();
+ss.remove(DB_AES_KEY);
+ss.remove(DB_SALT_KEY);
 
-function bin2String(array) {
-    return String.fromCharCode.apply(String, array);
+binToString = function(array) {
+    return String.fromCharCode.apply(null, array);
+}
+
+function string2Bin(str) {
+  var result = [];
+  for (var i = 0; i < str.length; i++) {
+    result.push(str.charCodeAt(i).toString(2));
+  }
+  return result;
+}
+
+getAESData = function() {
+    var keyData = ss.get(DB_AES_KEY);
+    var arr = JSON.parse(keyData).value.split("&&");
+    var saltData = ss.get(DB_SALT_KEY);
+    var salt = b64decode(JSON.parse(saltData).value);
+    var key = b64decode(arr[0]);
+    var iv = b64decode(arr[1]);
+    return {key: key, iv: iv, salt: salt};
 }
 
 cmd_megSendButton = function() {
-    if (!ss.has(dbAESkey)) {  // No QR code present. User must scan it
+    if (!ss.has(DB_AES_KEY)) {  // No QR code present. User must scan it
         var input = generateKeyData();
         transformDataForInput(input);
         generateQRCode();
     } else {  // QR code exists. Must transmit message
-
+        var text = getMailText();
+        text = encryptText(text);
+        decryptText(text);
+        transmitDecryptedToServer(text);
+        // Get it back from the server. Then send it to recipient.
     }
 }
+
+getMailText = function() {
+    var editor = GetCurrentEditor();
+    return editor.outputToString("text/plain", 4);
+}
+
+encryptText = function(text) {
+    var keyData = getAESData();
+    // Kinda stealing some code straight out of GibberishAES
+    var cipherBlocks = GibberishAES.rawEncrypt(
+        GibberishAES.s2a(text), keyData.key, keyData.iv
+    );
+	var saltBlock = [[83, 97, 108, 116, 101, 100, 95, 95].concat(keyData.salt)];
+    // Spells out 'Salted__'
+	cipherBlocks = saltBlock.concat(cipherBlocks);
+    return cipherBlocks;
+}
+
+decryptText = function(text) {
+    var keyData = getAESData();
+    var cryptArr = text.slice(16, text.length);
+    var string = GibberishAES.rawDecrypt(cryptArr, keyData.key, keyData.iv);
+    alert(string);
+}
+
+transmitDecryptedToServer = function(text) {
+    let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(
+        Ci.nsIXMLHttpRequest
+    );
+    let handler = ev => {
+        evf(m => xhr.removeEventListener(m, handler, !1));
+        switch (ev.type) {
+            case 'load':
+                if (xhr.status == 200) {
+                    cb(xhr.response);
+                    break;
+                }
+            default:
+                Services.prompt.alert(null, 'XHR Error', 'Error Fetching Package: ' + xhr.statusText + ' [' + ev.type + ':' + xhr.status + ']');
+                break;
+        }
+    };
+
+    let evf = f => ['load', 'error', 'abort'].forEach(f);
+    evf(m => xhr.addEventListener(m, handler, false));
+
+    xhr.mozBackgroundRequest = true;
+    var email_to = "foo@bar.com";  // XXX DEBUG
+    var email_from = "grehm87@gmail.com";  // XXX DEBUG
+    xhr.open(
+        'PUT',
+        SERVER_URL.concat(
+            "decrypted_message/?action=encrypt&email_to="
+        ).concat(encodeURIComponent(email_to)).concat(
+            "&email_from="
+        ).concat(encodeURIComponent(email_from)),
+        true
+    );
+    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+    xhr.channel.loadFlags |= Ci.nsIRequest.LOAD_ANONYMOUS | Ci.nsIRequest.LOAD_BYPASS_CACHE | Ci.nsIRequest.INHIBIT_PERSISTENT_CACHING;
+    xhr.send(text);
+}
+
 
 cmd_qrScanComplete = function() {
     var vbox = document.getElementById("appcontent");
@@ -38,14 +135,13 @@ cmd_qrScanComplete = function() {
     // where some of the lines in To: will be hidden. This is merely cosmetic tho
     // so I'm not going to bother with it.
     vbox.getElementsByTagName("editor")[0].style.display = "block";
-    ss.set(dbAESkey, keyStr)
+    ss.set(DB_AES_KEY, keyStr);
+    ss.set(DB_SALT_KEY, b64encode(salt));
 }
 
 transformDataForInput = function(input) {
-    var key = input[0];
-    var iv = input[1];
-    keyStr = btoa(bin2String(key));
-    var ivStr = btoa(bin2String(iv));
+    keyStr = b64encode(binToString(input.key));
+    var ivStr = b64encode(binToString(input.iv));
     keyStr = keyStr.concat("&&", ivStr);
 }
 
@@ -62,20 +158,16 @@ generateQRCode = function() {
     vbox.appendChild(button);
 }
 
-transmitMessage = function() {
-
-}
-
 pollForEncrypted = function() {
 
 }
 
 generateKeyData = function() {
-    var salt = randArr(8);
+    salt = randArr(8);
     // 25 characters max so 27 because 27 - 2 = 25.
 	var pass = Math.random().toString(36).substring(2, 27);
     var pbe = GibberishAES.openSSLKey(GibberishAES.s2a(pass), salt);
-    return [pbe.key, pbe.iv];
+    return {key: pbe.key, iv: pbe.iv};
 }
 
 randArr = function(num) {

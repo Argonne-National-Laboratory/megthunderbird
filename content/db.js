@@ -14,6 +14,7 @@ const FILE_SIMPLE_STORAGE = "simple_storage.sqlite";
 
 function Storage(aTblName) {
     this.tableName = aTblName;
+    this.init();
 }
 
 Storage.prototype.init = function() {
@@ -24,6 +25,8 @@ Storage.prototype.init = function() {
         this.dbConnection.executeSimpleSQL(
           "CREATE TABLE #1 (key TEXT PRIMARY KEY, value TEXT)".replace("#1", this.tableName)
         );
+    } else {
+
     }
 }
 
