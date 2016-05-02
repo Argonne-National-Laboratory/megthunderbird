@@ -47,8 +47,8 @@ getAESData = function() {
     var arr = JSON.parse(keyData).value.split("&&");
     var saltData = ss.get(DB_SALT_KEY);
     var salt = b64decode(JSON.parse(saltData).value);
-    var key = b64decode(arr[0]);
-    var iv = b64decode(arr[1]);
+    var key = GibberishAES.Base64.decode(arr[0]);
+    var iv = GibberishAES.Base64.decode(arr[1]);
     return {key: key, iv: iv, salt: salt};
 }
 
@@ -60,7 +60,6 @@ cmd_megSendButton = function() {
     } else {  // QR code exists. Must transmit message
         var text = getMailText();
         text = encryptText(text);
-        Cu.reportError(text);
         transmitDecryptedToServer(text);
         // Get it back from the server. Then send it to recipient.
     }
@@ -87,7 +86,11 @@ encryptText = function(text) {
     var cipherBlocks = GibberishAES.rawEncrypt(
         GibberishAES.s2a(text), keyData.key, keyData.iv
     );
+    // Show bytes so I can get a look @ padding
     return GibberishAES.Base64.encode(cipherBlocks);
+}
+
+cb = function(response) {
 }
 
 transmitDecryptedToServer = function(text) {
@@ -126,6 +129,38 @@ transmitDecryptedToServer = function(text) {
     xhr.setRequestHeader("Content-Type", "application/octet-stream");
     xhr.channel.loadFlags |= Ci.nsIRequest.LOAD_ANONYMOUS | Ci.nsIRequest.LOAD_BYPASS_CACHE | Ci.nsIRequest.INHIBIT_PERSISTENT_CACHING;
     xhr.send(text);
+}
+
+getDecryptedFromServer = function(id) {
+    // This is a TODO
+    let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(
+        Ci.nsIXMLHttpRequest
+    );
+    let handler = ev => {
+        evf(m => xhr.removeEventListener(m, handler, !1));
+        switch (ev.type) {
+            case 'load':
+                if (xhr.status == 200) {
+                    cb(xhr.response);
+                    break;
+                }
+            default:
+                Services.prompt.alert(null, 'XHR Error', 'Error Fetching Package: ' + xhr.statusText + ' [' + ev.type + ':' + xhr.status + ']');
+                break;
+        }
+    };
+
+    let evf = f => ['load', 'error', 'abort'].forEach(f);
+    evf(m => xhr.addEventListener(m, handler, false));
+
+    xhr.mozBackgroundRequest = true;
+    xhr.open(
+        'GET',
+        SERVER_URL.concat("decrypted_message/?message_id=").concat(id),
+        true
+    );
+    xhr.channel.loadFlags |= Ci.nsIRequest.LOAD_ANONYMOUS | Ci.nsIRequest.LOAD_BYPASS_CACHE | Ci.nsIRequest.INHIBIT_PERSISTENT_CACHING;
+    xhr.send(null);
 }
 
 
