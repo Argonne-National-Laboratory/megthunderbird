@@ -2,7 +2,6 @@
 <overlay id="sendoverlay"
 xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
     <script type="application/javascript" src="chrome://megthunderbird/content/js/qrcode.js"/>
-    <script type="application/javascript" src="chrome://megthunderbird/content/js/gibberish-aes-1.0.0.js"/>
     <script type="application/javascript" src="chrome://megthunderbird/content/overlay.js"/>
     <toolbar id="composeToolbar2" class="toolbar-primary chromeclass-toolbar">
         <!-- Need to figure out how to put an image in front of this -->
