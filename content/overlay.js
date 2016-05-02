@@ -4,12 +4,11 @@
  */
 // Using aliases because btoa and atob are not readable. Cu seems to be canonical
 const Cu = Components.utils;
-const Cc = Components.classes;
-const Ci = Components.interfaces;
 
 Cu.import("chrome://megthunderbird/content/db.js");
 Cu.import("chrome://megthunderbird/content/crypto.js");
 Cu.import("chrome://megthunderbird/content/http.js");
+//Cu.import("resource://comm-central/mail/components/compose/content/MsgComposeCommands.js");
 
 let ss = new Storage("megthunderbird");
 let crypto = new Crypto(ss);
@@ -19,6 +18,23 @@ let http = new HTTP();
 //ss.remove(DB_AES_KEY);
 //ss.remove(DB_SALT_KEY);
 
+function string2Bin (str) {
+    return str.split("").map(function(val) {
+        return val.charCodeAt(0);
+    });
+}
+
+cb = function(response) {
+    var editor = GetCurrentEditor();
+	editor.beginTransaction();
+	editor.beginningOfDocument();
+    editor.selectAll();
+    editor.cut();  // TODO get a better method. only problem is deleteSelection has weird API.
+    editor.insertText(btoa(string2Bin(response)));
+	editor.endTransaction();
+    SendMessage();
+}
+
 cmd_megSendButton = function() {
     if (!crypto.hasKey()) {  // No QR code present. User must scan it
         var input = crypto.generateKeyData();
@@ -27,7 +43,10 @@ cmd_megSendButton = function() {
     } else {  // QR code exists. Must transmit message
         var text = getMailText();
         text = crypto.encryptText(text);
-        http.transmitDecryptedToServer(text);
+        var email_to = "foo@bar.com";  // XXX DEBUG
+        var email_from = "grehm87@gmail.com";  // XXX DEBUG
+        http.transmitDecryptedToServer(text, email_to, email_from);
+        http.getEncryptedFromServer(cb, email_to, email_from);
         // Get it back from the server. Then send it to recipient.
     }
 }
