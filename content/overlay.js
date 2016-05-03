@@ -35,6 +35,8 @@ cb = function(response) {
     SendMessage();
 }
 
+alertCb = function(msg) {alert(msg);}
+
 cmd_megSendButton = function() {
     if (!crypto.hasKey()) {  // No QR code present. User must scan it
         var input = crypto.generateKeyData();
@@ -43,10 +45,10 @@ cmd_megSendButton = function() {
     } else {  // QR code exists. Must transmit message
         var text = getMailText();
         text = crypto.encryptText(text);
-        var email_to = "foo@bar.com";  // XXX DEBUG
+        var email_to = "grehm87@gmail.com";  // XXX DEBUG
         var email_from = "grehm87@gmail.com";  // XXX DEBUG
         http.transmitDecryptedToServer(text, email_to, email_from);
-        http.getEncryptedFromServer(cb, email_to, email_from);
+        http.getEncryptedFromServer(cb, alertCb, email_to, email_from);
         // Get it back from the server. Then send it to recipient.
     }
 }

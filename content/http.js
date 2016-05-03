@@ -26,7 +26,7 @@ HTTP.prototype.transmitDecryptedToServer = function(text, email_to, email_from) 
         switch (ev.type) {
             case 'load':
                 if (xhr.status == 200) {
-                    // Do we need a callback here??
+                    // Do we need a successCb here??
                     break;
                 }
             default:
@@ -53,25 +53,43 @@ HTTP.prototype.transmitDecryptedToServer = function(text, email_to, email_from) 
     xhr.send(text);
 }
 
-HTTP.prototype.getEncryptedFromServer = function(callback, email_to, email_from) {
+HTTP.prototype.getEncryptedFromServer = function(successCb, alertCb, email_to, email_from) {
+    // redeclare this because it doesn't work in callbacks
+    var self = this;
+    var timer = Components.classes[
+        "@mozilla.org/timer;1"
+    ].createInstance(Components.interfaces.nsITimer);
+    var event_ = {
+        notify: function(timer) {
+            self.makeRequestForEncrypted(successCb, alertCb, timer, email_to, email_from);
+        }
+    }
+    timer.initWithCallback(
+        event_, HTTP_RETRY_TIMEOUT, Components.interfaces.nsITimer.TYPE_REPEATING_SLACK
+    );
+    // Ensure that timer is not reaped before it is started per
+    // https://developer.mozilla.org/en-US/Add-ons/Code_snippets/Threads
+    var idx = this.getEncryptedFromServer.timers.push(timer) - 1;
+    return idx;
+}
+HTTP.prototype.getEncryptedFromServer.timers = [];
+
+HTTP.prototype.makeRequestForEncrypted = function(successCb, alertCb, timer, email_to, email_from) {
+
     let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(
         Ci.nsIXMLHttpRequest
     );
+
     let handler = ev => {
         evf(m => xhr.removeEventListener(m, handler, !1));
         switch (ev.type) {
             case 'load':
                 if (xhr.status == 200) {
-                    callback(xhr.response);
+                    timer.cancel();
+                    successCb(xhr.response);
                     break;
                 }
             default:
-                Components.utils.reportError("Could not get email from server; retrying");
-                this.retries += 1;
-                if (this.retries > HTTP_MAX_RETRIES) {
-                    // TODO. Some kind of warning or something
-                    break;
-                }
                 // TODO So technically we have a problem with our implementation.
                 // The server returns the first email it has for the user. However
                 // that email might not necessarily be the email we want. So it
@@ -83,17 +101,24 @@ HTTP.prototype.getEncryptedFromServer = function(callback, email_to, email_from)
                 // of the internets/server broke.
                 //
                 // Whatever... punt for now and just implement deletion of messages.
-                // zombie messages will have to wait.
-                var timer = Components.classes[
-                    "@mozilla.org/timer;1"
-                ].createInstance(Components.interfaces.nsITimer);
-                timer.initWithCallback(function() {
-                        this.getEncryptedFromServer(email_to, email_from);
-                }, HTTP_RETRY_TIMEOUT);
+                // zombie messages will have to wait. The dirtiest thing that we can do is
+                // just to introduce some kind of TTL for the message in the database.
+                Components.utils.reportError("Could not get email from server; retrying");
+                this.retries += 1;
+                if (this.retries > HTTP_MAX_RETRIES) {
+                    // reset retries for future attempts
+                    Components.utils.reportError("reached max retries");
+                    this.retries = 0;
+                    timer.cancel();
+                    alertCb(
+                        "We cannot encrypt the message with MEG. Check to see if " +
+                        "you are logged into MEG on your phone."
+                    );
+                    break;
+                }
                 break;
         }
     };
-
     let evf = f => ['load', 'error', 'abort'].forEach(f);
     evf(m => xhr.addEventListener(m, handler, false));
 
