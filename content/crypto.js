@@ -18,6 +18,10 @@ const b64decode = atob;
 const DB_AES_KEY = "aeskeyStr";
 const DB_SALT_KEY = "salt";
 
+binToString = function(array) {
+  return String.fromCharCode.apply(null, array);
+}
+
 function Crypto(dbConnection) {
     this.ss = dbConnection;
 }
@@ -64,10 +68,10 @@ Crypto.prototype.transformDataForInput = function(input) {
 }
 
 Crypto.prototype.generateKeyData = function() {
-    this.salt = randArr(8);
+    this.salt = this.randArr(8);
     // 25 characters max so 27 because 27 - 2 = 25.
 	var pass = Math.random().toString(36).substring(2, 27);
-    var pbe = GibberishAES.openSSLKey(GibberishAES.s2a(pass), salt);
+    var pbe = GibberishAES.openSSLKey(GibberishAES.s2a(pass), this.salt);
     return {key: pbe.key, iv: pbe.iv};
 }
 

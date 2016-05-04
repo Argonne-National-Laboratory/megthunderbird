@@ -15,6 +15,8 @@ let crypto = new Crypto(ss);
 let http = new HTTP();
 
 // XXX Remove when debugging finished
+//const DB_AES_KEY = "aeskeyStr";
+//const DB_SALT_KEY = "salt";
 //ss.remove(DB_AES_KEY);
 //ss.remove(DB_SALT_KEY);
 
