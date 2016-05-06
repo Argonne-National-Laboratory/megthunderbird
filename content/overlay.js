@@ -32,7 +32,7 @@ cb = function(response) {
 	editor.beginningOfDocument();
     editor.selectAll();
     editor.cut();  // TODO get a better method. only problem is deleteSelection has weird API.
-    editor.insertText(btoa(string2Bin(response)));
+    editor.insertText(JSON.parse(response).message);
 	editor.endTransaction();
     SendMessage();
 }

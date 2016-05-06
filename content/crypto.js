@@ -40,6 +40,11 @@ Crypto.prototype.hasKey = function() {
     return this.ss.has(DB_AES_KEY);
 }
 
+/**
+ * Symmetric key decryption for a message that was decrypted by PGP on the phone
+ *
+ * @param {String} Base64 string of data we want to decrypt
+ */
 Crypto.prototype.decryptText = function(text) {
     var keyData = this.getAESData();
     // This is not a generic Base64 implementation and is specifically
@@ -49,6 +54,11 @@ Crypto.prototype.decryptText = function(text) {
     return GibberishAES.rawDecrypt(text, keyData.key, keyData.iv);
 }
 
+/**
+ * Encrypt a message we will send off to the phone.
+ *
+ * @param {String} The text we want to encrypt
+ */
 Crypto.prototype.encryptText = function(text) {
     var keyData = this.getAESData();
     // Kinda stealing some code straight out of GibberishAES.

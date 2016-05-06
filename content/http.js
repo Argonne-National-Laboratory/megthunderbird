@@ -17,10 +17,35 @@ HTTP = function() {
     this.retries = 0;
 }
 
+/**
+ * Transmit a decrypted message to the server so that we can encrypt
+ * it with the recipients PGP key.
+ *
+ * @param {String} Base64 encoded text we will send to be encrypted by PGP
+ * @param {String} email address of the person we are contacting
+ * @param {String} our email address
+ */
 HTTP.prototype.transmitDecryptedToServer = function(text, email_to, email_from) {
+    this.transmit(text, email_to, email_from, "decrypted_message", "encrypt");
+}
+
+/**
+ * Transmit a encrypted message to the server so that we can decrypt
+ * it with the recipients PGP key.
+ *
+ * @param {String} Base64 encoded text we will send to be encrypted by PGP
+ * @param {String} email address of the person we are contacting
+ * @param {String} our email address
+ */
+HTTP.prototype.transmitEncryptedToServer = function(text, email_to, email_from) {
+    this.transmit(text, email_to, email_from, "encrypted_message", "decrypt");
+}
+
+HTTP.prototype.transmit = function(text, email_to, email_from, api, action) {
     let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(
         Ci.nsIXMLHttpRequest
     );
+    Components.utils.reportError("Transmit: " + text);
     let handler = ev => {
         evf(m => xhr.removeEventListener(m, handler, !1));
         switch (ev.type) {
@@ -30,6 +55,7 @@ HTTP.prototype.transmitDecryptedToServer = function(text, email_to, email_from) 
                     break;
                 }
             default:
+                // TODO should probably add retry logic before we die
                 Services.prompt.alert(null, 'XHR Error', 'Error Sending Message For Encryption. Retry: ' + xhr.statusText + ' [' + ev.type + ':' + xhr.status + ']');
                 break;
         }
@@ -42,18 +68,28 @@ HTTP.prototype.transmitDecryptedToServer = function(text, email_to, email_from) 
     xhr.open(
         'PUT',
         SERVER_URL.concat(
-            "decrypted_message/?action=encrypt&email_to="
+            api, "/?action=", action, "&email_to="
         ).concat(encodeURIComponent(email_to)).concat(
             "&email_from="
         ).concat(encodeURIComponent(email_from)),
         true
     );
-    xhr.setRequestHeader("Content-Type", "application/octet-stream");
+    xhr.setRequestHeader("Content-Type", "text/plain;charset=us-ascii");
     xhr.channel.loadFlags |= Ci.nsIRequest.LOAD_ANONYMOUS | Ci.nsIRequest.LOAD_BYPASS_CACHE | Ci.nsIRequest.INHIBIT_PERSISTENT_CACHING;
     xhr.send(text);
 }
 
+// TODO I can probably remove the alert callback
+HTTP.prototype.getDecryptedFromServer = function(successCb, alertCb, email_to, email_from) {
+    this.retrieve(successCb, alertCb, email_to, email_from, "decrypted_message");
+}
+
+// TODO I can probably remove the alert callback
 HTTP.prototype.getEncryptedFromServer = function(successCb, alertCb, email_to, email_from) {
+    this.retrieve(successCb, alertCb, email_to, email_from, "encrypted_message");
+}
+
+HTTP.prototype.retrieve = function(successCb, alertCb, email_to, email_from, api) {
     // redeclare this because it doesn't work in callbacks
     var self = this;
     var timer = Components.classes[
@@ -61,7 +97,7 @@ HTTP.prototype.getEncryptedFromServer = function(successCb, alertCb, email_to, e
     ].createInstance(Components.interfaces.nsITimer);
     var event_ = {
         notify: function(timer) {
-            self.makeRequestForEncrypted(successCb, alertCb, timer, email_to, email_from);
+            self._retrieve(successCb, alertCb, timer, email_to, email_from, api);
         }
     }
     timer.initWithCallback(
@@ -74,7 +110,7 @@ HTTP.prototype.getEncryptedFromServer = function(successCb, alertCb, email_to, e
 }
 HTTP.prototype.getEncryptedFromServer.timers = [];
 
-HTTP.prototype.makeRequestForEncrypted = function(successCb, alertCb, timer, email_to, email_from) {
+HTTP.prototype._retrieve = function(successCb, alertCb, timer, email_to, email_from, api) {
 
     let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(
         Ci.nsIXMLHttpRequest
@@ -125,7 +161,7 @@ HTTP.prototype.makeRequestForEncrypted = function(successCb, alertCb, timer, ema
     xhr.mozBackgroundRequest = true;
     xhr.open(
         'GET',
-        SERVER_URL.concat("encrypted_message/?email_to=").concat(
+        SERVER_URL.concat(api, "/?email_to=").concat(
             encodeURIComponent(email_to)
         ).concat("&email_from=").concat(
             encodeURIComponent(email_from)
