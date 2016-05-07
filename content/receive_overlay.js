@@ -9,7 +9,8 @@ let ss = new Storage("megthunderbird");
 let crypto = new Crypto(ss);
 
 decryptorCallback = function(text) {
-    var plain = crypto.decryptText(text);
+    var message = JSON.parse(text).message;
+    var plain = crypto.decryptText(message);
     Cu.reportError(plain);
 }
 

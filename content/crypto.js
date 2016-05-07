@@ -80,6 +80,7 @@ Crypto.prototype.transformDataForInput = function(input) {
 Crypto.prototype.generateKeyData = function() {
     this.salt = this.randArr(8);
     // 25 characters max so 27 because 27 - 2 = 25.
+    // TODO Check if Gibberish hashes the password
 	var pass = Math.random().toString(36).substring(2, 27);
     var pbe = GibberishAES.openSSLKey(GibberishAES.s2a(pass), this.salt);
     return {key: pbe.key, iv: pbe.iv};
