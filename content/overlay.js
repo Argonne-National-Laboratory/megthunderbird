@@ -26,7 +26,8 @@ function string2Bin (str) {
     });
 }
 
-cb = function(response) {
+transmitCallback = function(response) {
+    gMsgCompose.compFields.setHeader("X-Header-1", "MEG-Encrypted");
     var editor = GetCurrentEditor();
 	editor.beginTransaction();
 	editor.beginningOfDocument();
@@ -34,12 +35,10 @@ cb = function(response) {
     editor.cut();  // TODO get a better method. only problem is deleteSelection has weird API.
     editor.insertText(JSON.parse(response).message);
 	editor.endTransaction();
-    // Hmm the mechanics of how this actually works makes it non-trivial to send
+    // Hmm.. the mechanics of how this actually works makes it non-trivial to send
     // email to multiple recipients.
     SendMessage();
 }
-
-alertCb = function(msg) {alert(msg);}
 
 cmd_megSendButton = function() {
     if (!crypto.hasKey()) {  // No QR code present. User must scan it
@@ -55,7 +54,7 @@ cmd_megSendButton = function() {
         var text = getMailText();
         text = crypto.encryptText(text);
         http.transmitDecryptedToServer(text, addresses.to, addresses.from);
-        http.getEncryptedFromServer(cb, alertCb, addresses.to, addresses.from);
+        http.getEncryptedFromServer(transmitCallback, addresses.to, addresses.from);
     }
 }
 

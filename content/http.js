@@ -45,7 +45,6 @@ HTTP.prototype.transmit = function(text, email_to, email_from, api, action) {
     let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(
         Ci.nsIXMLHttpRequest
     );
-    Components.utils.reportError("Transmit: " + text);
     let handler = ev => {
         evf(m => xhr.removeEventListener(m, handler, !1));
         switch (ev.type) {
@@ -80,16 +79,16 @@ HTTP.prototype.transmit = function(text, email_to, email_from, api, action) {
 }
 
 // TODO I can probably remove the alert callback
-HTTP.prototype.getDecryptedFromServer = function(successCb, alertCb, email_to, email_from) {
-    this.retrieve(successCb, alertCb, email_to, email_from, "decrypted_message");
+HTTP.prototype.getDecryptedFromServer = function(successCb, email_to, email_from) {
+    this.retrieve(successCb, email_to, email_from, "decrypted_message");
 }
 
 // TODO I can probably remove the alert callback
-HTTP.prototype.getEncryptedFromServer = function(successCb, alertCb, email_to, email_from) {
-    this.retrieve(successCb, alertCb, email_to, email_from, "encrypted_message");
+HTTP.prototype.getEncryptedFromServer = function(successCb, email_to, email_from) {
+    this.retrieve(successCb, email_to, email_from, "encrypted_message");
 }
 
-HTTP.prototype.retrieve = function(successCb, alertCb, email_to, email_from, api) {
+HTTP.prototype.retrieve = function(successCb, email_to, email_from, api) {
     // redeclare this because it doesn't work in callbacks
     var self = this;
     var timer = Components.classes[
@@ -97,7 +96,7 @@ HTTP.prototype.retrieve = function(successCb, alertCb, email_to, email_from, api
     ].createInstance(Components.interfaces.nsITimer);
     var event_ = {
         notify: function(timer) {
-            self._retrieve(successCb, alertCb, timer, email_to, email_from, api);
+            self._retrieve(successCb, timer, email_to, email_from, api);
         }
     }
     timer.initWithCallback(
@@ -110,7 +109,7 @@ HTTP.prototype.retrieve = function(successCb, alertCb, email_to, email_from, api
 }
 HTTP.prototype.getEncryptedFromServer.timers = [];
 
-HTTP.prototype._retrieve = function(successCb, alertCb, timer, email_to, email_from, api) {
+HTTP.prototype._retrieve = function(successCb, timer, email_to, email_from, api) {
 
     let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(
         Ci.nsIXMLHttpRequest
@@ -146,9 +145,12 @@ HTTP.prototype._retrieve = function(successCb, alertCb, timer, email_to, email_f
                     Components.utils.reportError("reached max retries");
                     this.retries = 0;
                     timer.cancel();
-                    alertCb(
-                        "We cannot encrypt the message with MEG. Check to see if " +
-                        "you are logged into MEG on your phone."
+                    let type = api.replace('ed_message', '');
+                    Services.prompt.alert(
+                        null,
+                        'XHRError',
+                        "We cannot " + type + " the message with MEG. " +
+                        "Check to see if you are logged into MEG on your phone."
                     );
                     break;
                 }
