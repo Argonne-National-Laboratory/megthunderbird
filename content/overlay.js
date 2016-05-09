@@ -34,6 +34,8 @@ cb = function(response) {
     editor.cut();  // TODO get a better method. only problem is deleteSelection has weird API.
     editor.insertText(JSON.parse(response).message);
 	editor.endTransaction();
+    // Hmm the mechanics of how this actually works makes it non-trivial to send
+    // email to multiple recipients.
     SendMessage();
 }
 
@@ -45,14 +47,31 @@ cmd_megSendButton = function() {
         var keyStr = crypto.transformDataForInput(input);
         generateQRCode(keyStr);
     } else {  // QR code exists. Must transmit message
+        addresses = getEmailAddresses();
+        if (!addresses) {
+            return;
+        }
+        // TODO Ensure that the addresse has MEG.
         var text = getMailText();
         text = crypto.encryptText(text);
-        var email_to = "grehm87@gmail.com";  // XXX DEBUG
-        var email_from = "grehm87@gmail.com";  // XXX DEBUG
-        http.transmitDecryptedToServer(text, email_to, email_from);
-        http.getEncryptedFromServer(cb, alertCb, email_to, email_from);
-        // Get it back from the server. Then send it to recipient.
+        http.transmitDecryptedToServer(text, addresses.to, addresses.from);
+        http.getEncryptedFromServer(cb, alertCb, addresses.to, addresses.from);
     }
+}
+
+getEmailAddresses = function() {
+    var from = document.getElementById("msgIdentity").description;
+    var win = Services.wm.getMostRecentWindow("msgcompose");
+    var compFields = {};
+    win.Recipients2CompFields(compFields);
+    var to = compFields.to.split(",");
+    if (to.length > 1) {
+        alert("MEG can only support sending messages to one person at a time currently");
+        return false;
+    }
+    var re = /<(.+)>/;
+    var to_single = re.exec(to[0])[1];
+    return {from: from, to: to_single};
 }
 
 getMailText = function() {
