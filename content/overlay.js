@@ -14,16 +14,19 @@ let ss = new Storage("megthunderbird");
 let crypto = new Crypto(ss);
 let http = new HTTP();
 
-// XXX Remove when debugging finished
-//const DB_AES_KEY = "aeskeyStr";
-//const DB_SALT_KEY = "salt";
-//ss.remove(DB_AES_KEY);
-//ss.remove(DB_SALT_KEY);
 
 function string2Bin (str) {
     return str.split("").map(function(val) {
         return val.charCodeAt(0);
     });
+}
+
+// XXX Remove when debugging finished
+debugRemoveSymmetricKey = function() {
+    var DB_AES_KEY = "aeskeyStr";
+    var DB_SALT_KEY = "salt";
+    ss.remove(DB_AES_KEY);
+    ss.remove(DB_SALT_KEY);
 }
 
 transmitCallback = function(response) {
