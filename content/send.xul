@@ -1,11 +1,22 @@
 <?xml version="1.0"?>
+<?xml-stylesheet href="chrome://megthunderbird/skin/send.css" type="text/css"?>
 <overlay id="sendoverlay"
-xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+    xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
     <script type="application/javascript" src="chrome://megthunderbird/content/js/qrcode.js"/>
     <script type="application/javascript" src="chrome://megthunderbird/content/overlay.js"/>
     <toolbar id="composeToolbar2" class="toolbar-primary chromeclass-toolbar">
         <!-- Need to figure out how to put an image in front of this -->
+		<!--
         <toolbarbutton id="meg-send" class="toolbarbutton-1 meg-custom" label="Send with MEG" oncommand="cmd_megSendButton()" tooltiptext="Send encrypted message via MEG"/>
-        <toolbarbutton id="meg-debug-sym-key-remove" class="toolbarbutton-1 meg-custom" label="DEBUG: Remove Client Symmetric Key" oncommand="debugRemoveSymmetricKey()" tooltiptext="DEBUG: Remove Client Key"/>
+		-->
+		<div class="encryptonoff" xmlns="http://www.w3.org/1999/xhtml">
+			<input name="encryptonoff" id="myencryptonoff" type="checkbox"
+				class="encryptonoff-checkbox" checked="checked" onclick="cmd_enableDisable()"/>
+			<label class="encryptonoff-label" for="myencryptonoff">
+				<span class="encryptonoff-inner"></span>
+				<span class="encryptonoff-switch"></span>
+			</label>
+		</div>
+        <!--toolbarbutton id="meg-debug-sym-key-remove" class="toolbarbutton-1 meg-custom" label="DEBUG: Remove Client Symmetric Key" oncommand="debugRemoveSymmetricKey()" tooltiptext="DEBUG: Remove Client Key"/-->
     </toolbar>
 </overlay>

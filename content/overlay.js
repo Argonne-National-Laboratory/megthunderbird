@@ -4,21 +4,29 @@
  */
 // Using aliases because btoa and atob are not readable. Cu seems to be canonical
 const Cu = Components.utils;
+const originalSendCommand = "goDoCommand('cmd_sendButton')";
 
 Cu.import("chrome://megthunderbird/content/db.js");
 Cu.import("chrome://megthunderbird/content/crypto.js");
 Cu.import("chrome://megthunderbird/content/http.js");
-//Cu.import("resource://comm-central/mail/components/compose/content/MsgComposeCommands.js");
 
 let ss = new Storage("megthunderbird");
 let crypto = new Crypto(ss);
 let http = new HTTP();
 
 
-function string2Bin (str) {
-    return str.split("").map(function(val) {
-        return val.charCodeAt(0);
-    });
+cmd_enableDisable = function() {
+    var sendButton = document.getElementById("button-send");
+    var currentCmd = sendButton.getAttribute("oncommand");
+    if (currentCmd == originalSendCommand) {
+        sendButton.removeAttribute("command");
+        sendButton.setAttribute("oncommand", "cmd_megSendButton()");
+        // XXX Need to figure out how to enabled Send button when we
+        // click encrypted box before putting in a recipient address
+    } else {
+        sendButton.setAttribute("oncommand", originalSendCommand);
+        sendButton.setAttribute("command", "cmd_sendButton");
+    }
 }
 
 // XXX Remove when debugging finished
@@ -31,6 +39,7 @@ debugRemoveSymmetricKey = function() {
 
 transmitCallback = function(response) {
     gMsgCompose.compFields.setHeader("X-Header-1", "MEG-Encrypted");
+    // Could using the editor get the message listener to wait until completed?
     var editor = GetCurrentEditor();
 	editor.beginTransaction();
 	editor.beginningOfDocument();
@@ -63,6 +72,8 @@ cmd_megSendButton = function() {
 
 getEmailAddresses = function() {
     var from = document.getElementById("msgIdentity").description;
+    // XXX Bug! When the cursor is above the message compose field then the
+    // window found is null for some reason.
     var win = Services.wm.getMostRecentWindow("msgcompose");
     var compFields = {};
     win.Recipients2CompFields(compFields);
@@ -72,6 +83,9 @@ getEmailAddresses = function() {
         return false;
     }
     var re = /<(.+)>/;
+    Cu.reportError(to[0]);
+    // XXX Bug! When the cursor is set to a new, empty To: line then the
+    // email will come up as null.
     var to_single = re.exec(to[0])[1];
     return {from: from, to: to_single};
 }
@@ -109,3 +123,13 @@ generateQRCode = function(keyStr) {
     button.setAttribute("oncommand", "cmd_qrScanComplete()");
     vbox.appendChild(button);
 }
+
+// XXX This is kinda on the gross side of things. preferable would be something
+// that occurs on load of the window, however when I've tried to do this I've
+// run into race conditions where the window wasn't completely loaded yet and
+// so my JS was trying to operate on a null element.
+window.setInterval(
+    function() {
+        var security = document.getElementById("button-security");
+        security.style.display = "none";
+    }, 100);
