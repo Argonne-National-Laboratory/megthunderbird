@@ -2,9 +2,9 @@
  * Provides an interface for the client to perform whatever actions it needs
  * to interact with the MEG server
  */
-// Using aliases because btoa and atob are not readable. Cu seems to be canonical
 const Cu = Components.utils;
-const originalSendCommand = "goDoCommand('cmd_sendButton')";
+const sendButtonCmd = "cmd_sendButton";
+const originalSendCommand = "goDoCommand('" + sendButtonCmd + "')";
 
 Cu.import("chrome://megthunderbird/content/db.js");
 Cu.import("chrome://megthunderbird/content/crypto.js");
@@ -21,11 +21,9 @@ cmd_enableDisable = function() {
     if (currentCmd == originalSendCommand) {
         sendButton.removeAttribute("command");
         sendButton.setAttribute("oncommand", "cmd_megSendButton()");
-        // XXX Need to figure out how to enabled Send button when we
-        // click encrypted box before putting in a recipient address
     } else {
         sendButton.setAttribute("oncommand", originalSendCommand);
-        sendButton.setAttribute("command", "cmd_sendButton");
+        sendButton.setAttribute("command", sendButtonCmd);
     }
 }
 
@@ -44,7 +42,7 @@ transmitCallback = function(response) {
 	editor.beginTransaction();
 	editor.beginningOfDocument();
     editor.selectAll();
-    editor.cut();  // TODO get a better method. only problem is deleteSelection has weird API.
+    editor.cut();
     editor.insertText(JSON.parse(response).message);
 	editor.endTransaction();
     // Hmm.. the mechanics of how this actually works makes it non-trivial to send
@@ -78,6 +76,7 @@ getEmailAddresses = function() {
     var compFields = {};
     win.Recipients2CompFields(compFields);
     var to = compFields.to.split(",");
+    Cu.reportError(to);
     if (to.length > 1) {
         alert("MEG can only support sending messages to one person at a time currently");
         return false;
@@ -86,6 +85,8 @@ getEmailAddresses = function() {
     Cu.reportError(to[0]);
     // XXX Bug! When the cursor is set to a new, empty To: line then the
     // email will come up as null.
+    //
+    // Well I think... this can only be replicated on one of my debugging tools.
     var to_single = re.exec(to[0])[1];
     return {from: from, to: to_single};
 }
@@ -133,3 +134,16 @@ window.setInterval(
         var security = document.getElementById("button-security");
         security.style.display = "none";
     }, 100);
+
+// XXX Also kinda grody, but less so.
+window.setInterval(
+    function() {
+        var win = Services.wm.getMostRecentWindow("msgcompose");
+        var compFields = {};
+        win.Recipients2CompFields(compFields);
+        var to = compFields.to.split(",");
+        if (to != "") {
+            var sendButton = document.getElementById("button-send");
+            sendButton.setAttribute("disabled", false);
+        }
+    }, 500);
