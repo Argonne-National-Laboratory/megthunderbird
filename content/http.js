@@ -11,7 +11,7 @@ Components.utils.import('resource://gre/modules/Services.jsm');
 const HTTP_RETRY_TIMEOUT = 3000;
 const HTTP_MAX_RETRIES = 5;
 // Of course this will change.
-const SERVER_URL = "http://grehm.us/megserver/"
+const SERVER_URL = "http://mobileencryptiongateway.org/megserver/"
 
 HTTP = function() {
     this.retries = 0;
