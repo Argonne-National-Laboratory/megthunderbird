@@ -76,13 +76,11 @@ getEmailAddresses = function() {
     var compFields = {};
     win.Recipients2CompFields(compFields);
     var to = compFields.to.split(",");
-    Cu.reportError(to);
     if (to.length > 1) {
         alert("MEG can only support sending messages to one person at a time currently");
         return false;
     }
     var re = /<(.+)>/;
-    Cu.reportError(to[0]);
     // XXX Bug! When the cursor is set to a new, empty To: line then the
     // email will come up as null.
     //
