@@ -13,6 +13,6 @@
 				<span class="encryptonoff-switch"></span>
 			</label>
 		</div>
-        <!--toolbarbutton id="meg-debug-sym-key-remove" class="toolbarbutton-1 meg-custom" label="DEBUG: Remove Client Symmetric Key" oncommand="debugRemoveSymmetricKey()" tooltiptext="DEBUG: Remove Client Key"/-->
+        <toolbarbutton id="meg-debug-sym-key-remove" class="toolbarbutton-1 meg-custom" label="DEBUG: Remove Client Symmetric Key" oncommand="debugRemoveSymmetricKey()" tooltiptext="DEBUG: Remove Client Key"/>
     </toolbar>
 </overlay>
