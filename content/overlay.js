@@ -119,6 +119,7 @@ generateQRCode = function(keyStr) {
     vbox.getElementsByTagName("editor")[0].style.display = "none";
     // TODO Complete styling of button
     var button = document.createElement("button");
+    button.setAttribute("label", "CLICK ME WHEN YOU'RE FINISHED SCANNING");
     button.setAttribute("oncommand", "cmd_qrScanComplete()");
     vbox.appendChild(button);
 }
