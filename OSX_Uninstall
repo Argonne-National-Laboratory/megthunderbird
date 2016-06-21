@@ -1,0 +1,11 @@
+#!/bin/bash
+
+echo "UNINSTALLING MEG PLUGIN"
+
+tb_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+install_dir="/Applications/Thunderbird.app/Contents/Resources"
+
+rm -Rf "$install_dir/MEG_Plugin"
+rm "$install_dir/extensions/grehm@ucdavis.edu"
+
+echo "MEG PLUGIN UNINSTALLED"
