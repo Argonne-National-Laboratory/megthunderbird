@@ -85,7 +85,15 @@ getEmailAddresses = function() {
     // email will come up as null.
     //
     // Well I think... this can only be replicated on one of my debugging tools.
-    var to_single = re.exec(to[0])[1];
+    var to_single = 0;
+    try {
+      to_single = re.exec(to[0])[1];
+    }
+    catch (e) {
+      to_single = to
+    }
+    //DEBUG
+    Application.console.log("SENDING TO: ".concat(to_single))
     return {from: from, to: to_single};
 }
 

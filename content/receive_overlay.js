@@ -41,8 +41,27 @@ shouldDecryptCallback = function(msgHdr, aMimeMsg) {
         // TODO Eventually we will want to declare false here to not strip html
         var text = getMessageText(msgHdr, true, 32768);
         var re = /<(.+)>/;
-        var author = re.exec(msgHdr.author)[1];
-        var recipient = re.exec(msgHdr.recipients.trim())[1];
+
+        var author = 0;
+        try {
+          author = re.exec(msgHdr.author)[1];
+        }
+        catch (e) {
+          recipient = msgHdr.author;
+        }
+        //DEBUG
+        //Application.console.log("AUTHOR: ".concat(author))th
+
+        var recipient = 0;
+        try {
+          recipient = re.exec(msgHdr.recipients.trim())[1];
+        }
+        catch (e) {
+          recipient = msgHdr.recipients;
+        }
+        //DEBUG
+        //Application.console.log("RECIPIENT: ".concat(recipient))
+
         var http = new HTTP();
         http.transmitEncryptedToServer(text, recipient, author);
         http.getDecryptedFromServer(decryptorCallback, recipient, author);
