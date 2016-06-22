@@ -1,0 +1,11 @@
+#!/bin/bash
+
+echo "INSTALLING MEG PLUGIN"
+
+tb_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+install_dir="/usr/lib/thunderbird"
+
+cp -R "$tb_dir" "$install_dir/MEG_Plugin"
+echo "$install_dir/MEG_Plugin" > "$install_dir/extensions/grehm@ucdavis.edu"
+
+echo "MEG PLUGIN INSTALLED"
