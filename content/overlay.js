@@ -14,7 +14,7 @@ let ss = new Storage("megthunderbird");
 let crypto = new Crypto(ss);
 let http = new HTTP();
 
-
+//Enable and disable the MEG code based on the position of the encryption switch
 cmd_enableDisable = function() {
     var sendButton = document.getElementById("button-send");
     var currentCmd = sendButton.getAttribute("oncommand");
@@ -25,15 +25,17 @@ cmd_enableDisable = function() {
         sendButton.setAttribute("oncommand", originalSendCommand);
         sendButton.setAttribute("command", sendButtonCmd);
     }
-}
+};
 
 // XXX Remove when debugging finished
 debugRemoveSymmetricKey = function() {
     var DB_AES_KEY = "aeskeyStr";
     var DB_SALT_KEY = "salt";
+    var DB_CLIENT_ID_KEY = "client_id";
     ss.remove(DB_AES_KEY);
     ss.remove(DB_SALT_KEY);
-}
+    ss.remove(DB_CLIENT_ID_KEY);
+};
 
 transmitCallback = function(response) {
     gMsgCompose.compFields.setHeader("X-Header-1", "MEG-Encrypted");
@@ -48,14 +50,20 @@ transmitCallback = function(response) {
     // Hmm.. the mechanics of how this actually works makes it non-trivial to send
     // email to multiple recipients.
     SendMessage();
-}
+};
 
+//When the user hits the send button with MEG on
+//Generate a QR code or send it to the phone to PGP encrypt
 cmd_megSendButton = function() {
-    if (!crypto.hasKey()) {  // No QR code present. User must scan it
+    //If no QR key, generate one
+    if (!crypto.hasKey()) {
         var input = crypto.generateKeyData();
         var keyStr = crypto.transformDataForInput(input);
         generateQRCode(keyStr);
-    } else {  // QR code exists. Must transmit message
+    }
+
+    //Otherwise symmetrically encrypt the email and send it to phone
+    else {
         addresses = getEmailAddresses();
         if (!addresses) {
             return;
@@ -66,20 +74,26 @@ cmd_megSendButton = function() {
         http.transmitDecryptedToServer(text, addresses.to, addresses.from);
         http.getEncryptedFromServer(transmitCallback, addresses.to, addresses.from);
     }
-}
+};
 
+//Get the email addresses from the current message window
 getEmailAddresses = function() {
     var from = document.getElementById("msgIdentity").description;
+
     // XXX Bug! When the cursor is above the message compose field then the
     // window found is null for some reason.
     var win = Services.wm.getMostRecentWindow("msgcompose");
     var compFields = {};
     win.Recipients2CompFields(compFields);
     var to = compFields.to.split(",");
+
+    //If there's more than 1 recipient, throw error
     if (to.length > 1) {
         alert("MEG can only support sending messages to one person at a time currently");
         return false;
     }
+
+    //Use regex to strip email out if in <email@email.com> format
     var re = /<(.+)>/;
     // XXX Bug! When the cursor is set to a new, empty To: line then the
     // email will come up as null.
@@ -90,37 +104,49 @@ getEmailAddresses = function() {
       to_single = re.exec(to[0])[1];
     }
     catch (e) {
-      to_single = to
+      to_single = to;
     }
-    //DEBUG
-    Application.console.log("SENDING TO: ".concat(to_single))
-    return {from: from, to: to_single};
-}
 
+    //DEBUG
+    Application.console.log("SENDING TO: ".concat(to_single));
+
+    return {from: from, to: to_single};
+};
+
+//Pull the text from the email being composed
 getMailText = function() {
     var editor = GetCurrentEditor();
     return editor.outputToString("text/plain", 4);
-}
+};
 
+//Delete all generated QR visual elements and
+//Store the QR code
 cmd_qrScanComplete = function() {
+    //Create visual QR elements
     var vbox = document.getElementById("appcontent");
     var img = vbox.getElementsByTagName("img")[0];
     var canvas = vbox.getElementsByTagName("canvas")[0];
     var completeButton = vbox.getElementsByTagName("button")[0];
+
     // clean up all QR related stuff
     vbox.removeChild(img);
     vbox.removeChild(canvas);
     vbox.removeChild(completeButton);
+
     // Redisplay the editor. BUG - Unfortunately this displays a slight UI problem
     // where some of the lines in To: will be hidden. This is merely cosmetic tho
     // so I'm not going to bother with it.
     vbox.getElementsByTagName("editor")[0].style.display = "block";
     crypto.storeKey();
-}
+};
 
+//Generate the QR code and present it to the user
 generateQRCode = function(keyStr) {
+    //Generate the QR Code
     var qrcode = new QRCode("appcontent");
     qrcode.makeCode(keyStr);
+
+    //Make visual elements to show the user
     var vbox = document.getElementById("appcontent");
     var img = vbox.getElementsByTagName("img")[0];
     img.style.display = "block";
@@ -130,7 +156,7 @@ generateQRCode = function(keyStr) {
     button.setAttribute("label", "CLICK ME WHEN YOU'RE FINISHED SCANNING");
     button.setAttribute("oncommand", "cmd_qrScanComplete()");
     vbox.appendChild(button);
-}
+};
 
 // XXX This is kinda on the gross side of things. preferable would be something
 // that occurs on load of the window, however when I've tried to do this I've
