@@ -3,7 +3,7 @@
  * in a synchronous manner instead of asynchronously.
  */
 
-var EXPORTED_SYMBOLS = ['Storage']
+var EXPORTED_SYMBOLS = ['Storage'];
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results : Cr} = Components;
 Cu.import("resource://gre/modules/FileUtils.jsm");
@@ -28,7 +28,7 @@ Storage.prototype.init = function() {
     } else {
 
     }
-}
+};
 
 Storage.prototype.set = function(aKey, aValue) {
     // TODO Later we can perform the update step if the user screws up their
@@ -39,7 +39,7 @@ Storage.prototype.set = function(aKey, aValue) {
     statement.params.value = JSON.stringify({ value: aValue });
     // TODO figure out err handling or use SimpleSQL
     while (statement.executeStep()) {}
-}
+};
 
 Storage.prototype.has = function(aKey) {
     var value = this.get(aKey);
@@ -48,19 +48,19 @@ Storage.prototype.has = function(aKey) {
     } else {
         return true;
     }
-}
+};
 
 Storage.prototype.get = function(aKey) {
     let statement = this.dbConnection.createStatement(
         "SELECT value FROM #1 WHERE key = :key".replace("#1", this.tableName)
     );
-    statement.params.key = aKey
+    statement.params.key = aKey;
     while (statement.executeStep()) {
         var value = statement.row.value;
     }
     statement.reset();
     return value;
-}
+};
 
 Storage.prototype.remove = function(aKey) {
     let query = "DELETE FROM #1 WHERE key = :key";
@@ -68,4 +68,4 @@ Storage.prototype.remove = function(aKey) {
     statement.params.key = aKey;
     // TODO need to figure out err handling. Or you can always just use SimpleSQL
     while (statement.executeStep()) {}
-}
+};

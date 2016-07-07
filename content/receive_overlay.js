@@ -25,7 +25,7 @@ getMessageText = function(msgHdr, stripHTML, length) {
         listener.inputStream, msgHdr.Charset, 2 * length,
         length, false, stripHTML, { }
     );
-}
+};
 
 decryptorCallback = function(text) {
     var message = JSON.parse(text).message;
@@ -34,7 +34,7 @@ decryptorCallback = function(text) {
     var div = content.getElementsByClassName("moz-text-flowed")[0]
         || content.getElementsByClassName("moz-text-plain")[0];
     div.innerHTML = plain;
-}
+};
 
 shouldDecryptCallback = function(msgHdr, aMimeMsg) {
     if (aMimeMsg.get('x-header-1') == "MEG-Encrypted") {
@@ -63,10 +63,11 @@ shouldDecryptCallback = function(msgHdr, aMimeMsg) {
         //Application.console.log("RECIPIENT: ".concat(recipient))
 
         var http = new HTTP();
-        http.transmitEncryptedToServer(text, recipient, author);
-        http.getDecryptedFromServer(decryptorCallback, recipient, author);
+        var msg_id = http.genID()
+        http.transmitEncryptedToServer(text, recipient, author, msg_id);
+        http.getDecryptedFromServer(decryptorCallback, recipient, author, msg_id);
     }
-}
+};
 
 var messageExtension = {
     init: function() {
@@ -88,9 +89,9 @@ var messageExtension = {
             partsOnDemand: true,
         });
     }
-}
+};
 
 window.addEventListener("load", function load(event) {
     window.removeEventListener("load", load, false);
     messageExtension.init();
-}, false)
+}, false);

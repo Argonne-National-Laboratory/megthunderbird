@@ -71,8 +71,9 @@ cmd_megSendButton = function() {
         // TODO Ensure that the addresse has MEG.
         var text = getMailText();
         text = crypto.encryptText(text);
-        http.transmitDecryptedToServer(text, addresses.to, addresses.from);
-        http.getEncryptedFromServer(transmitCallback, addresses.to, addresses.from);
+        var msg_id = http.genID()
+        http.transmitDecryptedToServer(text, addresses.to, addresses.from, msg_id);
+        http.getEncryptedFromServer(transmitCallback, addresses.to, addresses.from, msg_id);
     }
 };
 

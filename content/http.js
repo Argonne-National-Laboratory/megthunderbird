@@ -18,17 +18,23 @@ HTTP = function() {
     this.retries = 0;
 };
 
+//Generates ID for messages and client
+HTTP.prototype.genID = function() {
+  var S4 = function() {
+      return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+  };
+  let id = (S4()+S4()+S4()+S4());
+  return id;
+};
+
 //Gets/creates client_id to send in transmit
 function getClientID() {
   let ss = new Storage("megthunderbird");
   if (!ss.has("client_id")) {
-    var S4 = function() {
-        return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
-    };
-    let id = (S4()+S4()+S4()+S4());
+    let id = new (new HTTP()).genID();
     ss.set("client_id", id);
   }
-  return ss.get("client_id");
+  return JSON.parse(ss.get("client_id")).value;
 }
 
 /**
@@ -39,8 +45,8 @@ function getClientID() {
  * @param {String} email address of the person we are contacting
  * @param {String} our email address
  */
-HTTP.prototype.transmitDecryptedToServer = function(text, email_to, email_from) {
-    this.transmit(text, email_to, email_from, "decrypted_message", "encrypt");
+HTTP.prototype.transmitDecryptedToServer = function(text, email_to, email_from, msg_id) {
+    this.transmit(text, email_to, email_from, msg_id, "decrypted_message", "encrypt");
 };
 
 /**
@@ -51,13 +57,11 @@ HTTP.prototype.transmitDecryptedToServer = function(text, email_to, email_from) 
  * @param {String} email address of the person we are contacting
  * @param {String} our email address
  */
-HTTP.prototype.transmitEncryptedToServer = function(text, email_to, email_from) {
-    this.transmit(text, email_to, email_from, "encrypted_message", "decrypt");
+HTTP.prototype.transmitEncryptedToServer = function(text, email_to, email_from, msg_id) {
+    this.transmit(text, email_to, email_from, msg_id, "encrypted_message", "decrypt");
 };
 
-HTTP.prototype.transmit = function(text, email_to, email_from, api, action) {
-    let client_id = getClientID();
-
+HTTP.prototype.transmit = function(text, email_to, email_from, msg_id, api, action) {
     let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(
         Ci.nsIXMLHttpRequest
     );
@@ -83,28 +87,34 @@ HTTP.prototype.transmit = function(text, email_to, email_from, api, action) {
     xhr.open(
         'PUT',
         SERVER_URL.concat(
-            api, "/?action=", action, "&email_to="
-        ).concat(encodeURIComponent(email_to)).concat(
-            "&email_from="
-        ).concat(encodeURIComponent(email_from)),
+            api, "/?action=", action, "&email_to=").concat(
+            encodeURIComponent(email_to)).concat(
+            "&email_from=").concat(
+            encodeURIComponent(email_from)).concat(
+            "&client_id=",getClientID()).concat(
+            "&msg_id=",msg_id),
         true
     );
+
+    // var aConsoleService = Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService);
+    // var console = {log:function(str){aConsoleService.logStringMessage(str);}};
+
     xhr.setRequestHeader("Content-Type", "text/plain;charset=us-ascii");
     xhr.channel.loadFlags |= Ci.nsIRequest.LOAD_ANONYMOUS | Ci.nsIRequest.LOAD_BYPASS_CACHE | Ci.nsIRequest.INHIBIT_PERSISTENT_CACHING;
     xhr.send(text);
 };
 
 // TODO I can probably remove the alert callback
-HTTP.prototype.getDecryptedFromServer = function(successCb, email_to, email_from) {
-    this.retrieve(successCb, email_to, email_from, "decrypted_message");
+HTTP.prototype.getDecryptedFromServer = function(successCb, email_to, email_from, msg_id) {
+    this.retrieve(successCb, email_to, email_from, msg_id, "decrypted_message");
 };
 
 // TODO I can probably remove the alert callback
-HTTP.prototype.getEncryptedFromServer = function(successCb, email_to, email_from) {
-    this.retrieve(successCb, email_to, email_from, "encrypted_message");
+HTTP.prototype.getEncryptedFromServer = function(successCb, email_to, email_from, msg_id) {
+    this.retrieve(successCb, email_to, email_from, msg_id, "encrypted_message");
 };
 
-HTTP.prototype.retrieve = function(successCb, email_to, email_from, api) {
+HTTP.prototype.retrieve = function(successCb, email_to, email_from, msg_id, api) {
     // redeclare this because it doesn't work in callbacks
     var self = this;
     var timer = Components.classes[
@@ -112,7 +122,7 @@ HTTP.prototype.retrieve = function(successCb, email_to, email_from, api) {
     ].createInstance(Components.interfaces.nsITimer);
     var event_ = {
         notify: function(timer) {
-            self._retrieve(successCb, timer, email_to, email_from, api);
+            self._retrieve(successCb, timer, email_to, email_from, msg_id, api);
         }
     };
     timer.initWithCallback(
@@ -126,7 +136,7 @@ HTTP.prototype.retrieve = function(successCb, email_to, email_from, api) {
 
 HTTP.prototype.getEncryptedFromServer.timers = [];
 
-HTTP.prototype._retrieve = function(successCb, timer, email_to, email_from, api) {
+HTTP.prototype._retrieve = function(successCb, timer, email_to, email_from, msg_id, api) {
 
     let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(
         Ci.nsIXMLHttpRequest
@@ -181,10 +191,11 @@ HTTP.prototype._retrieve = function(successCb, timer, email_to, email_from, api)
     xhr.open(
         'GET',
         SERVER_URL.concat(api, "/?email_to=").concat(
-            encodeURIComponent(email_to)
-        ).concat("&email_from=").concat(
-            encodeURIComponent(email_from)
-        ),
+            encodeURIComponent(email_to)).concat(
+            "&email_from=").concat(
+            encodeURIComponent(email_from)).concat(
+            "&client_id=",getClientID()).concat(
+            "&msg_id=",msg_id),
         true
     );
     xhr.channel.loadFlags |= Ci.nsIRequest.LOAD_ANONYMOUS | Ci.nsIRequest.LOAD_BYPASS_CACHE | Ci.nsIRequest.INHIBIT_PERSISTENT_CACHING;

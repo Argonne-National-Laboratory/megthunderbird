@@ -7,7 +7,7 @@ var EXPORTED_SYMBOLS = ['Crypto'];
 
 const { require } = Components.utils.import(
     "resource://gre/modules/commonjs/toolkit/require.js", {}
-)
+);
 var GibberishAES = require(
     "chrome://megthunderbird/content/js/gibberish-aes-1.0.0.js"
 );
@@ -20,7 +20,7 @@ const DB_SALT_KEY = "salt";
 
 binToString = function(array) {
   return String.fromCharCode.apply(null, array);
-}
+};
 
 function Crypto(dbConnection) {
     this.ss = dbConnection;
@@ -34,11 +34,11 @@ Crypto.prototype.getAESData = function() {
     var key = GibberishAES.Base64.decode(arr[0]);
     var iv = GibberishAES.Base64.decode(arr[1]);
     return {key: key, iv: iv, salt: salt};
-}
+};
 
 Crypto.prototype.hasKey = function() {
     return this.ss.has(DB_AES_KEY);
-}
+};
 
 /**
  * Symmetric key decryption for a message that was decrypted by PGP on the phone
@@ -52,7 +52,7 @@ Crypto.prototype.decryptText = function(text) {
     // algorithms
     text = GibberishAES.Base64.decode(text);
     return GibberishAES.rawDecrypt(text, keyData.key, keyData.iv);
-}
+};
 
 /**
  * Encrypt a message we will send off to the phone.
@@ -68,14 +68,14 @@ Crypto.prototype.encryptText = function(text) {
     );
     // Show bytes so I can get a look @ padding
     return GibberishAES.Base64.encode(cipherBlocks);
-}
+};
 
 Crypto.prototype.transformDataForInput = function(input) {
     this.keyStr = b64encode(binToString(input.key));
     var ivStr = b64encode(binToString(input.iv));
     this.keyStr = this.keyStr.concat("&&", ivStr);
     return this.keyStr;
-}
+};
 
 Crypto.prototype.generateKeyData = function() {
     this.salt = this.randArr(8);
@@ -84,7 +84,7 @@ Crypto.prototype.generateKeyData = function() {
 	var pass = Math.random().toString(36).substring(2, 27);
     var pbe = GibberishAES.openSSLKey(GibberishAES.s2a(pass), this.salt);
     return {key: pbe.key, iv: pbe.iv};
-}
+};
 
 Crypto.prototype.randArr = function(num) {
 	var result = [], i;
@@ -92,9 +92,9 @@ Crypto.prototype.randArr = function(num) {
 		result = result.concat(Math.floor(Math.random() * 256));
 	}
 	return result;
-}
+};
 
 Crypto.prototype.storeKey = function() {
     this.ss.set(DB_AES_KEY, this.keyStr);
     this.ss.set(DB_SALT_KEY, b64encode(this.salt));
-}
+};
