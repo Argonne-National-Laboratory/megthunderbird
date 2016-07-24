@@ -57,9 +57,20 @@ transmitCallback = function(response) {
 cmd_megSendButton = function() {
     //If no QR key, generate one
     if (!crypto.hasKey()) {
+        //Get symm key data
         var input = crypto.generateKeyData();
         var keyStr = crypto.transformDataForInput(input);
-        generateQRCode(keyStr);
+
+        //Get/generate clientID
+        clientId = http.getClientID();
+
+        //Create
+        var QRCodeText = "".concat("{",
+        "\"aes\": \"",keyStr,"\",",
+        "\"clientID\": \"",clientId,"\"",
+        "}");
+        Application.console.log(QRCodeText);
+        generateQRCode(QRCodeText);
     }
 
     //Otherwise symmetrically encrypt the email and send it to phone
@@ -71,7 +82,7 @@ cmd_megSendButton = function() {
         // TODO Ensure that the addresse has MEG.
         var text = getMailText();
         text = crypto.encryptText(text);
-        var msg_id = http.genID()
+        var msg_id = http.genID();
         http.transmitDecryptedToServer(text, addresses.to, addresses.from, msg_id);
         http.getEncryptedFromServer(transmitCallback, addresses.to, addresses.from, msg_id);
     }
@@ -152,6 +163,7 @@ generateQRCode = function(keyStr) {
     var img = vbox.getElementsByTagName("img")[0];
     img.style.display = "block";
     vbox.getElementsByTagName("editor")[0].style.display = "none";
+
     // TODO Complete styling of button
     var button = document.createElement("button");
     button.setAttribute("label", "CLICK ME WHEN YOU'RE FINISHED SCANNING");

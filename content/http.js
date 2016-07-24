@@ -9,7 +9,7 @@ const Ci = Components.interfaces;
 Components.utils.import('resource://gre/modules/Services.jsm');
 Components.utils.import("chrome://megthunderbird/content/db.js");
 
-const HTTP_RETRY_TIMEOUT = 3000;
+const HTTP_RETRY_TIMEOUT = 1000;
 const HTTP_MAX_RETRIES = 5;
 // Of course this will change.
 const SERVER_URL = "http://mobileencryptiongateway.org/megserver/";
@@ -28,14 +28,14 @@ HTTP.prototype.genID = function() {
 };
 
 //Gets/creates client_id to send in transmit
-function getClientID() {
+HTTP.prototype.getClientID = function() {
   let ss = new Storage("megthunderbird");
   if (!ss.has("client_id")) {
-    let id = new (new HTTP()).genID();
+    let id = this.genID();
     ss.set("client_id", id);
   }
   return JSON.parse(ss.get("client_id")).value;
-}
+};
 
 /**
  * Transmit a decrypted message to the server so that we can encrypt
@@ -91,7 +91,7 @@ HTTP.prototype.transmit = function(text, email_to, email_from, msg_id, api, acti
             encodeURIComponent(email_to)).concat(
             "&email_from=").concat(
             encodeURIComponent(email_from)).concat(
-            "&client_id=",getClientID()).concat(
+            "&client_id=",this.getClientID()).concat(
             "&msg_id=",msg_id),
         true
     );
@@ -194,7 +194,7 @@ HTTP.prototype._retrieve = function(successCb, timer, email_to, email_from, msg_
             encodeURIComponent(email_to)).concat(
             "&email_from=").concat(
             encodeURIComponent(email_from)).concat(
-            "&client_id=",getClientID()).concat(
+            "&client_id=",this.getClientID()).concat(
             "&msg_id=",msg_id),
         true
     );
