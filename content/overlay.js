@@ -18,10 +18,32 @@ let http = new HTTP();
 cmd_enableDisable = function() {
     var sendButton = document.getElementById("button-send");
     var currentCmd = sendButton.getAttribute("oncommand");
+
+    //Switch send button to MEG encryption function
     if (currentCmd == originalSendCommand) {
         sendButton.removeAttribute("command");
         sendButton.setAttribute("oncommand", "cmd_megSendButton()");
-    } else {
+
+        //If there's no symmetric key, generate and display it
+        if (!crypto.hasKey()) {
+            //Get symm key data
+            var input = crypto.generateKeyData();
+            var keyStr = crypto.transformDataForInput(input);
+
+            //Get/generate clientID
+            clientId = http.getClientID();
+
+            //Create JSON format for aes symm key and clientId
+            var QRCodeText = "".concat("{",
+            "\"aes\": \"",keyStr,"\",",
+            "\"clientID\": \"",clientId,"\"",
+            "}");
+            Application.console.log(QRCodeText);
+            generateQRCode(QRCodeText);
+        }
+    }
+    //Otherwise set it to normal send
+    else {
         sendButton.setAttribute("oncommand", originalSendCommand);
         sendButton.setAttribute("command", sendButtonCmd);
     }
@@ -52,40 +74,20 @@ transmitCallback = function(response) {
     SendMessage();
 };
 
-//When the user hits the send button with MEG on
-//Generate a QR code or send it to the phone to PGP encrypt
+//When the user hits the send button with MEG enabled
+//Send it to the phone to PGP encrypt
 cmd_megSendButton = function() {
-    //If no QR key, generate one
-    if (!crypto.hasKey()) {
-        //Get symm key data
-        var input = crypto.generateKeyData();
-        var keyStr = crypto.transformDataForInput(input);
-
-        //Get/generate clientID
-        clientId = http.getClientID();
-
-        //Create
-        var QRCodeText = "".concat("{",
-        "\"aes\": \"",keyStr,"\",",
-        "\"clientID\": \"",clientId,"\"",
-        "}");
-        Application.console.log(QRCodeText);
-        generateQRCode(QRCodeText);
+    //Symmetrically encrypt the email and send it to phone
+    addresses = getEmailAddresses();
+    if (!addresses) {
+        return;
     }
-
-    //Otherwise symmetrically encrypt the email and send it to phone
-    else {
-        addresses = getEmailAddresses();
-        if (!addresses) {
-            return;
-        }
-        // TODO Ensure that the addresse has MEG.
-        var text = getMailText();
-        text = crypto.encryptText(text);
-        var msg_id = http.genID();
-        http.transmitDecryptedToServer(text, addresses.to, addresses.from, msg_id);
-        http.getEncryptedFromServer(transmitCallback, addresses.to, addresses.from, msg_id);
-    }
+    // TODO Ensure that the addresse has MEG.
+    var text = getMailText();
+    text = crypto.encryptText(text);
+    var msg_id = http.genID();
+    http.transmitDecryptedToServer(text, addresses.to, addresses.from, msg_id);
+    http.getEncryptedFromServer(transmitCallback, addresses.to, addresses.from, msg_id);
 };
 
 //Get the email addresses from the current message window
