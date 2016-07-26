@@ -9,7 +9,7 @@ const Ci = Components.interfaces;
 Components.utils.import('resource://gre/modules/Services.jsm');
 Components.utils.import("chrome://megthunderbird/content/db.js");
 
-const HTTP_RETRY_TIMEOUT = 1000;
+const HTTP_RETRY_TIMEOUT = 750;
 const HTTP_MAX_RETRIES = 5;
 // Of course this will change.
 const SERVER_URL = "http://mobileencryptiongateway.org/megserver/";
@@ -190,12 +190,7 @@ HTTP.prototype._retrieve = function(successCb, timer, email_to, email_from, msg_
     xhr.mozBackgroundRequest = true;
     xhr.open(
         'GET',
-        SERVER_URL.concat(api, "/?email_to=").concat(
-            encodeURIComponent(email_to)).concat(
-            "&email_from=").concat(
-            encodeURIComponent(email_from)).concat(
-            "&client_id=",this.getClientID()).concat(
-            "&msg_id=",msg_id),
+        SERVER_URL.concat(api, "/?message_id=",msg_id),
         true
     );
     xhr.channel.loadFlags |= Ci.nsIRequest.LOAD_ANONYMOUS | Ci.nsIRequest.LOAD_BYPASS_CACHE | Ci.nsIRequest.INHIBIT_PERSISTENT_CACHING;
