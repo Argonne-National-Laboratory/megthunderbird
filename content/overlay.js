@@ -86,8 +86,9 @@ cmd_megSendButton = function() {
     var text = getMailText();
     text = crypto.encryptText(text);
     var msg_id = http.genID();
-    http.transmitDecryptedToServer(text, addresses.to, addresses.from, msg_id);
-    http.getEncryptedFromServer(transmitCallback, addresses.to, addresses.from, msg_id);
+    var client_id = http.getClientID();
+    http.transmitDecryptedToServer(text, addresses.to, addresses.from, client_id, msg_id);
+    http.getEncryptedFromServer(transmitCallback, client_id, msg_id);
 };
 
 //Get the email addresses from the current message window

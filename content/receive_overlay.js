@@ -63,9 +63,10 @@ shouldDecryptCallback = function(msgHdr, aMimeMsg) {
         //Application.console.log("RECIPIENT: ".concat(recipient))
 
         var http = new HTTP();
-        var msg_id = http.genID()
-        http.transmitEncryptedToServer(text, recipient, author, msg_id);
-        http.getDecryptedFromServer(decryptorCallback, recipient, author, msg_id);
+        var msg_id = http.genID();
+        var client_id = http.getClientID();
+        http.transmitEncryptedToServer(text, recipient, author, client_id, msg_id);
+        http.getDecryptedFromServer(decryptorCallback, client_id, msg_id);
     }
 };
 

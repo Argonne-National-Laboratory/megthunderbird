@@ -45,8 +45,8 @@ HTTP.prototype.getClientID = function() {
  * @param {String} email address of the person we are contacting
  * @param {String} our email address
  */
-HTTP.prototype.transmitDecryptedToServer = function(text, email_to, email_from, msg_id) {
-    this.transmit(text, email_to, email_from, msg_id, "decrypted_message", "encrypt");
+HTTP.prototype.transmitDecryptedToServer = function(text, email_to, email_from, client_id, msg_id) {
+    this.transmit(text, email_to, email_from, client_id, msg_id, "decrypted_message", "encrypt");
 };
 
 /**
@@ -57,11 +57,11 @@ HTTP.prototype.transmitDecryptedToServer = function(text, email_to, email_from, 
  * @param {String} email address of the person we are contacting
  * @param {String} our email address
  */
-HTTP.prototype.transmitEncryptedToServer = function(text, email_to, email_from, msg_id) {
-    this.transmit(text, email_to, email_from, msg_id, "encrypted_message", "decrypt");
+HTTP.prototype.transmitEncryptedToServer = function(text, email_to, email_from, client_id, msg_id) {
+    this.transmit(text, email_to, email_from, client_id, msg_id, "encrypted_message", "decrypt");
 };
 
-HTTP.prototype.transmit = function(text, email_to, email_from, msg_id, api, action) {
+HTTP.prototype.transmit = function(text, email_to, email_from, client_id, msg_id, api, action) {
     let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(
         Ci.nsIXMLHttpRequest
     );
@@ -91,7 +91,7 @@ HTTP.prototype.transmit = function(text, email_to, email_from, msg_id, api, acti
             encodeURIComponent(email_to)).concat(
             "&email_from=").concat(
             encodeURIComponent(email_from)).concat(
-            "&client_id=",this.getClientID()).concat(
+            "&client_id=",client_id).concat(
             "&msg_id=",msg_id),
         true
     );
@@ -105,16 +105,16 @@ HTTP.prototype.transmit = function(text, email_to, email_from, msg_id, api, acti
 };
 
 // TODO I can probably remove the alert callback
-HTTP.prototype.getDecryptedFromServer = function(successCb, email_to, email_from, msg_id) {
-    this.retrieve(successCb, email_to, email_from, msg_id, "decrypted_message");
+HTTP.prototype.getDecryptedFromServer = function(successCb, client_id, msg_id) {
+    this.retrieve(successCb, client_id, msg_id, "decrypted_message");
 };
 
 // TODO I can probably remove the alert callback
-HTTP.prototype.getEncryptedFromServer = function(successCb, email_to, email_from, msg_id) {
-    this.retrieve(successCb, email_to, email_from, msg_id, "encrypted_message");
+HTTP.prototype.getEncryptedFromServer = function(successCb, client_id, msg_id) {
+    this.retrieve(successCb, client_id, msg_id, "encrypted_message");
 };
 
-HTTP.prototype.retrieve = function(successCb, email_to, email_from, msg_id, api) {
+HTTP.prototype.retrieve = function(successCb, client_id, msg_id, api) {
     // redeclare this because it doesn't work in callbacks
     var self = this;
     var timer = Components.classes[
@@ -122,7 +122,7 @@ HTTP.prototype.retrieve = function(successCb, email_to, email_from, msg_id, api)
     ].createInstance(Components.interfaces.nsITimer);
     var event_ = {
         notify: function(timer) {
-            self._retrieve(successCb, timer, email_to, email_from, msg_id, api);
+            self._retrieve(successCb, timer, client_id, msg_id, api);
         }
     };
     timer.initWithCallback(
@@ -136,7 +136,7 @@ HTTP.prototype.retrieve = function(successCb, email_to, email_from, msg_id, api)
 
 HTTP.prototype.getEncryptedFromServer.timers = [];
 
-HTTP.prototype._retrieve = function(successCb, timer, email_to, email_from, msg_id, api) {
+HTTP.prototype._retrieve = function(successCb, timer, client_id, msg_id, api) {
 
     let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(
         Ci.nsIXMLHttpRequest
@@ -190,7 +190,8 @@ HTTP.prototype._retrieve = function(successCb, timer, email_to, email_from, msg_
     xhr.mozBackgroundRequest = true;
     xhr.open(
         'GET',
-        SERVER_URL.concat(api, "/?message_id=",msg_id),
+        SERVER_URL.concat(api, "/?message_id=",msg_id).concat(
+        "&client_id=",client_id),
         true
     );
     xhr.channel.loadFlags |= Ci.nsIRequest.LOAD_ANONYMOUS | Ci.nsIRequest.LOAD_BYPASS_CACHE | Ci.nsIRequest.INHIBIT_PERSISTENT_CACHING;
