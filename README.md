@@ -26,11 +26,8 @@ This is a debugging feature right now. Click on `Write`. Then click
 
 #### Linux
 
-1. Make sure you're using Thunderbird 40 or above. At the moment this isn't in the Ubuntu repositories so you'll need to add a Thunderbird ppa.
-   - `apt-add-repository ppa:mozillateam/thunderbird-next`
-   - `sudo apt-get update`
-   - `sudo apt-get upgrade`
-2. Go to `/usr/lib/thunderbird/extensions`
-3. Create a file called `grehm@ucdavis.edu` (it must match the `<em:id>` parameter from the install.rdf file in the megthunderbird extension.
-   - Add a single line to this file with a path to the extension on disk, e.g.:
-     `/home/username/Documents/Projects/megthunderbird/`
+1. Download the xpi file here: https://github.com/Argonne-National-Laboratory/megthunderbird/releases/download/1.0a/megthunderbird.anl.gov.xpi
+2. In thunderbird, go to Tools->Add-ons then click the gear menu and choose `Install Add-on From File...`
+3. Find the file you downloaded in step 1.
+4. Restart Thunderbird
+
