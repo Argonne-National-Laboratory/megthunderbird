@@ -1,5 +1,5 @@
-content megthunderbird chrome/content/
-skin megthunderbird classic/1.0 chrome/skin/
-overlay chrome://messenger/content/messengercompose/messengercompose.xul chrome://megthunderbird/chrome/content/send.xul
-overlay chrome://messenger/content/messengercompose/messengercompose.xul chrome://megthunderbird/chrome/content/qrinsert.xul
-overlay chrome://messenger/content/messenger.xul chrome://megthunderbird/content/chrome/receive.xul
+content 	megthunderbird 								content/
+skin 		megthunderbird 			classic/1.0 				skin/
+overlay 	chrome://messenger/content/messengercompose/messengercompose.xul 	chrome://megthunderbird/content/send.xul
+overlay 	chrome://messenger/content/messengercompose/messengercompose.xul 	chrome://megthunderbird/content/qrinsert.xul
+overlay 	chrome://messenger/content/messenger.xul 				chrome://megthunderbird/content/receive.xul
