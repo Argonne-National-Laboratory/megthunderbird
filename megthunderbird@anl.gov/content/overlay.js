@@ -131,7 +131,7 @@ getEmailAddresses = function() {
 //Pull the text from the email being composed
 getMailText = function() {
     var editor = GetCurrentEditor();
-    return editor.outputToString("text/plain", 4);
+    return editor.outputToString("text/html", 4);
 };
 
 //Delete all generated QR visual elements and
