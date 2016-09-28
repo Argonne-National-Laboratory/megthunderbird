@@ -29,7 +29,9 @@ getMessageText = function(msgHdr, stripHTML, length) {
 
 decryptorCallback = function(text) {
     var message = JSON.parse(text).message;
+    var decStart = Date.now();
     var plain = crypto.decryptText(message);
+    Cu.reportError("Decryption time: " + parseInt(Date.now() - decStart));
     var content = document.getElementById("messagepane").contentWindow.document;
     var div = content.getElementsByClassName("moz-text-flowed")[0]
         || content.getElementsByClassName("moz-text-plain")[0];
@@ -39,6 +41,7 @@ decryptorCallback = function(text) {
 shouldDecryptCallback = function(msgHdr, aMimeMsg) {
     if (aMimeMsg.get('x-header-1') == "MEG-Encrypted") {
         // TODO Eventually we will want to declare false here to not strip html
+        var start = Date.now();
         var text = getMessageText(msgHdr, true, 32768);
         var re = /<(.+)>/;
         var author = re.exec(msgHdr.author)[1];
@@ -46,6 +49,7 @@ shouldDecryptCallback = function(msgHdr, aMimeMsg) {
         var http = new HTTP();
         http.transmitEncryptedToServer(text, recipient, author);
         http.getDecryptedFromServer(decryptorCallback, recipient, author);
+        Cu.reportError("decryption initial: " + parseInt(Date.now() - start));
     }
 }
 

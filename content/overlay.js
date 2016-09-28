@@ -56,15 +56,19 @@ cmd_megSendButton = function() {
         var keyStr = crypto.transformDataForInput(input);
         generateQRCode(keyStr);
     } else {  // QR code exists. Must transmit message
+        var start = Date.now()
         addresses = getEmailAddresses();
         if (!addresses) {
             return;
         }
         // TODO Ensure that the addresse has MEG.
         var text = getMailText();
+        var encStart = Date.now();
         text = crypto.encryptText(text);
+        Cu.reportError("Encryption time: " + parseInt(Date.now() - encStart));
         http.transmitDecryptedToServer(text, addresses.to, addresses.from);
         http.getEncryptedFromServer(transmitCallback, addresses.to, addresses.from);
+        Cu.reportError("First part transmit: " + parseInt(Date.now() - start));
     }
 }
 
@@ -91,7 +95,7 @@ getEmailAddresses = function() {
 
 getMailText = function() {
     var editor = GetCurrentEditor();
-    return editor.outputToString("text/plain", 4);
+    return editor.outputToString("text/html", 4);
 }
 
 cmd_qrScanComplete = function() {
@@ -138,6 +142,9 @@ window.setInterval(
 window.setInterval(
     function() {
         var win = Services.wm.getMostRecentWindow("msgcompose");
+        if (win == null) {
+            return
+        }
         var compFields = {};
         win.Recipients2CompFields(compFields);
         var to = compFields.to.split(",");

@@ -5,13 +5,13 @@ var EXPORTED_SYMBOLS = ["HTTP"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
+const Cu = Components.utils;
 
-Components.utils.import('resource://gre/modules/Services.jsm');
+Cu.import('resource://gre/modules/Services.jsm');
 
-const HTTP_RETRY_TIMEOUT = 3000;
-const HTTP_MAX_RETRIES = 5;
-// Of course this will change.
-const SERVER_URL = "http://mobileencryptiongateway.org/megserver/"
+const HTTP_RETRY_TIMEOUT = 500;
+const HTTP_MAX_RETRIES = 10;
+const SERVER_URL = "http://grehm.us/megserver/"
 
 HTTP = function() {
     this.retries = 0;
@@ -42,6 +42,7 @@ HTTP.prototype.transmitEncryptedToServer = function(text, email_to, email_from) 
 }
 
 HTTP.prototype.transmit = function(text, email_to, email_from, api, action) {
+    var start = Date.now()
     let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(
         Ci.nsIXMLHttpRequest
     );
@@ -51,11 +52,13 @@ HTTP.prototype.transmit = function(text, email_to, email_from, api, action) {
             case 'load':
                 if (xhr.status == 200) {
                     // Do we need a successCb here??
+                    Cu.reportError("Transmit time: " + parseInt(Date.now() - start));
                     break;
                 }
             default:
                 // TODO should probably add retry logic before we die
-                Services.prompt.alert(null, 'XHR Error', 'Error Sending Message For Encryption. Retry: ' + xhr.statusText + ' [' + ev.type + ':' + xhr.status + ']');
+                Cu.reportError("transmit failure time: " + parseInt(Date.now() - start));
+                Services.prompt.alert(null, 'Error Contacting MEG', 'Error Sending Message For Encryption. Retry: ' + xhr.statusText + ' [' + ev.type + ':' + xhr.status + ']');
                 break;
         }
     };
@@ -110,7 +113,7 @@ HTTP.prototype.retrieve = function(successCb, email_to, email_from, api) {
 HTTP.prototype.getEncryptedFromServer.timers = [];
 
 HTTP.prototype._retrieve = function(successCb, timer, email_to, email_from, api) {
-
+    var start = Date.now()
     let xhr = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].createInstance(
         Ci.nsIXMLHttpRequest
     );
@@ -122,6 +125,7 @@ HTTP.prototype._retrieve = function(successCb, timer, email_to, email_from, api)
                 if (xhr.status == 200) {
                     timer.cancel();
                     successCb(xhr.response);
+                    Cu.reportError("retrieve_ success time: " + parseInt(Date.now() - start));
                     break;
                 }
             default:
@@ -138,11 +142,11 @@ HTTP.prototype._retrieve = function(successCb, timer, email_to, email_from, api)
                 // Whatever... punt for now and just implement deletion of messages.
                 // zombie messages will have to wait. The dirtiest thing that we can do is
                 // just to introduce some kind of TTL for the message in the database.
-                Components.utils.reportError("Could not get email from server; retrying");
+                Cu.reportError("Could not get email from server; retrying");
                 this.retries += 1;
                 if (this.retries > HTTP_MAX_RETRIES) {
                     // reset retries for future attempts
-                    Components.utils.reportError("reached max retries");
+                    Cu.reportError("reached max retries");
                     this.retries = 0;
                     timer.cancel();
                     let type = api.replace('ed_message', '');
@@ -154,6 +158,7 @@ HTTP.prototype._retrieve = function(successCb, timer, email_to, email_from, api)
                     );
                     break;
                 }
+                Cu.reportError("retrieve_ failure time: " + parseInt(Date.now() - start));
                 break;
         }
     };
