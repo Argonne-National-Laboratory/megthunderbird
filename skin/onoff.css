@@ -1,0 +1,94 @@
+.encryptonoff {
+    position: relative; width: 110px;
+    -webkit-user-select:none; -moz-user-select:none; -ms-user-select: none;
+}
+.encryptonoff-checkbox {
+    display: none;
+}
+.encryptonoff-label {
+    display: block; overflow: hidden; cursor: pointer;
+    border: 2px solid #999999; border-radius: 20px;
+}
+.encryptonoff-inner {
+    display: block; width: 200%; margin-left: -100%;
+    transition: margin 0.3s ease-in 0s;
+}
+.encryptonoff-inner:before, .encryptonoff-inner:after {
+    display: block; float: left; width: 50%; height: 30px; padding: 0; line-height: 30px;
+    font-size: 11px; color: white; font-family: Trebuchet, Arial, sans-serif; font-weight: bold;
+    box-sizing: border-box;
+}
+.encryptonoff-inner:after {
+    content: "MEG Encrypt";
+    padding-right: 10px;
+    background-color: #34A7C1; color: #FFFFFF;
+	text-align: right;
+}
+.encryptonoff-inner:before {
+    content: "Unencrypted";
+    padding-left: 10px;
+    background-color: #EEEEEE; color: #999999;
+    text-align: left;
+}
+.encryptonoff-switch {
+    display: block; width: 16px; margin: 6px;
+    background: #FFFFFF;
+    position: absolute; top: 0; bottom: 0;
+    right: 78px;
+    border: 2px solid #999999; border-radius: 20px;
+    transition: all 0.3s ease-in 0s;
+}
+.encryptonoff-checkbox:checked + .encryptonoff-label .encryptonoff-inner {
+    margin-left: 0;
+}
+.encryptonoff-checkbox:checked + .encryptonoff-label .encryptonoff-switch {
+    right: 0px;
+}
+
+/* Divider between search and send message flippers */
+
+.encsearch-onoff {
+    position: relative; width: 115px;
+}
+.encsearch-onoff-checkbox {
+    display: none;
+}
+.encsearch-onoff-label {
+    display: block; overflow: hidden; cursor: pointer;
+    border: 2px solid #999999; border-radius: 20px;
+}
+.encsearch-onoff-inner {
+    display: block; width: 200%; margin-left: -100%;
+    transition: margin 0.3s ease-in 0s;
+}
+.encsearch-onoff-inner:before, .encsearch-onoff-inner:after {
+    display: block; float: left; width: 50%; height: 20px; padding: 0; line-height: 20px;
+    font-size: 9px; color: white; font-family: Trebuchet, Arial, sans-serif; font-weight: bold;
+    box-sizing: border-box;
+}
+.encsearch-onoff-inner:after {
+    content: "Search Encrypted";
+    padding-right: 10px;
+    background-color: #34A7C1; color: #FFFFFF;
+	text-align: right;
+}
+.encsearch-onoff-inner:before {
+    content: "Normal Search";
+    padding-left: 10px;
+    background-color: #EEEEEE; color: #999999;
+    text-align: left;
+}
+.encsearch-onoff-switch {
+    display: block; width: 10px; margin: 4px;
+    background: #FFFFFF;
+    position: absolute; top: 0; bottom: 0;
+    right: 93px;
+    border: 2px solid #999999; border-radius: 26px;
+    transition: all 0.3s ease-in 0s;
+}
+.encsearch-onoff-checkbox:checked + .encsearch-onoff-label .encsearch-onoff-inner {
+    margin-left: 0;
+}
+.encsearch-onoff-checkbox:checked + .encsearch-onoff-label .encsearch-onoff-switch {
+    right: 0px;
+}
