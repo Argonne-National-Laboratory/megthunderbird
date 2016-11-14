@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 <?xml-stylesheet href="chrome://megthunderbird/skin/onoff.css" type="text/css"?>
-<overlay id="receiveoverlay"
+<overlay id="inboxoverlay"
     xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
     <textbox id="searchInput" class="searchBox">
 
 		<div class="encsearch-onoff" xmlns="http://www.w3.org/1999/xhtml">
 			<input name="encsearch-onoff" id="searchonoff" type="checkbox"
-				class="encsearch-onoff-checkbox" checked="checked" onclick=""/>
+				class="encsearch-onoff-checkbox" checked="checked" onclick="cmd_enableDisableSearch()"/>
 			<label class="encsearch-onoff-label" for="searchonoff">
 				<span class="encsearch-onoff-inner"></span>
 				<span class="encsearch-onoff-switch"></span>
@@ -14,5 +14,5 @@
 		</div>
 
     </textbox>
-    <script type="application/javascript" src="chrome://megthunderbird/content/receive_overlay.js"/>
+    <script type="application/javascript" src="chrome://megthunderbird/content/inbox_overlay.js"/>
 </overlay>

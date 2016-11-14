@@ -12,6 +12,30 @@ let listener = Components.classes["@mozilla.org/network/sync-stream-listener;1"]
     .createInstance(Components.interfaces.nsISyncStreamListener);
 let ioService = Components.classes["@mozilla.org/network/io-service;1"]
     .getService(Components.interfaces.nsIIOService);
+let searchCmd = "document.getElementById('searchInput').doSearch();"
+
+megSearch = function(event) {
+    if (event.keyCode == 13) {
+        // XXX TODO
+        document.getElementById("searchInput").doSearch();
+        event.preventDefault();
+        event.stopPropagation();
+    }
+}
+
+cmd_enableDisableSearch = function() {
+    var searchInput = document.getElementById("searchInput");
+    var toggle = document.getElementById("searchonoff");
+    if (toggle.checked) {
+        searchInput.removeEventListener("keypress", megSearch, useCapture=true);
+    } else {
+        searchInput.addEventListener("keypress", megSearch, capture=true);
+    }
+}
+
+doMegSearch = function() {
+    alert("meg search");
+}
 
 getMessageText = function(msgHdr, stripHTML, length) {
     let messenger = Cc["@mozilla.org/messenger;1"].createInstance(Ci.nsIMessenger);
@@ -31,7 +55,6 @@ decryptorCallback = function(text) {
     var message = JSON.parse(text).message;
     var decStart = Date.now();
     var plain = crypto.decryptText(message);
-    Cu.reportError("Decryption time: " + parseInt(Date.now() - decStart));
     var content = document.getElementById("messagepane").contentWindow.document;
     var div = content.getElementsByClassName("moz-text-flowed")[0]
         || content.getElementsByClassName("moz-text-plain")[0];
@@ -49,7 +72,6 @@ shouldDecryptCallback = function(msgHdr, aMimeMsg) {
         var http = new HTTP();
         http.transmitEncryptedToServer(text, recipient, author);
         http.getDecryptedFromServer(decryptorCallback, recipient, author);
-        Cu.reportError("decryption initial: " + parseInt(Date.now() - start));
     }
 }
 
