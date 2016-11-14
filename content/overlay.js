@@ -65,10 +65,9 @@ cmd_megSendButton = function() {
         var text = getMailText();
         var encStart = Date.now();
         text = crypto.encryptText(text);
-        Cu.reportError("Encryption time: " + parseInt(Date.now() - encStart));
-        http.transmitDecryptedToServer(text, addresses.to, addresses.from);
-        http.getEncryptedFromServer(transmitCallback, addresses.to, addresses.from);
-        Cu.reportError("First part transmit: " + parseInt(Date.now() - start));
+        // XXX uncomment after debugging
+        //http.transmitDecryptedToServer(text, addresses.to, addresses.from);
+        //http.getEncryptedFromServer(transmitCallback, addresses.to, addresses.from);
     }
 }
 
@@ -93,9 +92,33 @@ getEmailAddresses = function() {
     return {from: from, to: to_single};
 }
 
+getSearchTerms = function(editor) {
+    var text = editor.outputToString("text/plain", 4);
+    Cu.reportError(text);
+    // XXX debug atm.
+    // but perform a frequency analysis.
+    return ["foobar", "bazbar"];
+}
+
 getMailText = function() {
     var editor = GetCurrentEditor();
-    return editor.outputToString("text/html", 4);
+    var currentHTML = editor.outputToString("text/html", 4);
+    var parser = new DOMParser();
+    var doc = parser.parseFromString(currentHTML, "text/html");
+    if (doc.getElementById("megDetails") == null) {
+        var megDetails = document.createElement("details");
+        megDetails.id = "megDetails";
+        var searchTerms = getSearchTerms(editor);
+        for (var i=0; i < searchTerms.length; i++) {
+            var p = document.createElement("p");
+            p.innerHTML = searchTerms[i];
+            megDetails.appendChild(p);
+        }
+        doc.firstChild.appendChild(megDetails);
+    } else {
+        // XXX TODO when we get threads implemented
+    }
+    return doc.firstChild.innerHTML;
 }
 
 cmd_qrScanComplete = function() {
