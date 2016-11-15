@@ -9,6 +9,7 @@ const originalSendCommand = "goDoCommand('" + sendButtonCmd + "')";
 Cu.import("chrome://megthunderbird/content/db.js");
 Cu.import("chrome://megthunderbird/content/crypto.js");
 Cu.import("chrome://megthunderbird/content/http.js");
+Cu.import("chrome://megthunderbird/content/frequency.js");
 
 let ss = new Storage("megthunderbird");
 let crypto = new Crypto(ss);
@@ -45,8 +46,6 @@ transmitCallback = function(response) {
     editor.cut();
     editor.insertText(JSON.parse(response).message);
 	editor.endTransaction();
-    // Hmm.. the mechanics of how this actually works makes it non-trivial to send
-    // email to multiple recipients.
     SendMessage();
 }
 
@@ -57,17 +56,16 @@ cmd_megSendButton = function() {
         generateQRCode(keyStr);
     } else {  // QR code exists. Must transmit message
         var start = Date.now()
+        // TODO Ensure that the addresse has MEG.
         addresses = getEmailAddresses();
         if (!addresses) {
             return;
         }
-        // TODO Ensure that the addresse has MEG.
         var text = getMailText();
         var encStart = Date.now();
         text = crypto.encryptText(text);
-        // XXX uncomment after debugging
-        //http.transmitDecryptedToServer(text, addresses.to, addresses.from);
-        //http.getEncryptedFromServer(transmitCallback, addresses.to, addresses.from);
+        http.transmitDecryptedToServer(text, addresses.to, addresses.from);
+        http.getEncryptedFromServer(transmitCallback, addresses.to, addresses.from);
     }
 }
 
@@ -79,6 +77,8 @@ getEmailAddresses = function() {
     var compFields = {};
     win.Recipients2CompFields(compFields);
     var to = compFields.to.split(",");
+    // XXX The mechanics of encrypted email makes it non-trivial to send
+    // email to multiple recipients.
     if (to.length > 1) {
         alert("MEG can only support sending messages to one person at a time currently");
         return false;
@@ -94,10 +94,8 @@ getEmailAddresses = function() {
 
 getSearchTerms = function(editor) {
     var text = editor.outputToString("text/plain", 4);
-    Cu.reportError(text);
-    // XXX debug atm.
-    // but perform a frequency analysis.
-    return ["foobar", "bazbar"];
+    var analysis = new Analysis(text);
+    return analysis.top3();
 }
 
 getMailText = function() {
