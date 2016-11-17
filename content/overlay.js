@@ -5,12 +5,16 @@
 const Cu = Components.utils;
 const sendButtonCmd = "cmd_sendButton";
 const originalSendCommand = "goDoCommand('" + sendButtonCmd + "')";
+const { require } = Components.utils.import(
+    "resource://gre/modules/commonjs/toolkit/require.js", {}
+)
 
 Cu.import("chrome://megthunderbird/content/db.js");
 Cu.import("chrome://megthunderbird/content/crypto.js");
 Cu.import("chrome://megthunderbird/content/http.js");
 Cu.import("chrome://megthunderbird/content/frequency.js");
 
+let sha256 = require("chrome://megthunderbird/content/js/sha256.js").sha256;
 let ss = new Storage("megthunderbird");
 let crypto = new Crypto(ss);
 let http = new HTTP();
@@ -36,40 +40,38 @@ debugRemoveSymmetricKey = function() {
     ss.remove(DB_SALT_KEY);
 }
 
-transmitCallback = function(response) {
-    gMsgCompose.compFields.setHeader("X-Header-1", "MEG-Encrypted");
-    // Could using the editor get the message listener to wait until completed?
-    var editor = GetCurrentEditor();
-	editor.beginTransaction();
-	editor.beginningOfDocument();
-    editor.selectAll();
-    editor.cut();
-    editor.insertText(JSON.parse(response).message);
-	editor.endTransaction();
-    SendMessage();
-}
-
 cmd_megSendButton = function() {
     if (!crypto.hasKey()) {  // No QR code present. User must scan it
         var input = crypto.generateKeyData();
         var keyStr = crypto.transformDataForInput(input);
         generateQRCode(keyStr);
     } else {  // QR code exists. Must transmit message
-        var start = Date.now()
-        // TODO Ensure that the addresse has MEG.
-        addresses = getEmailAddresses();
-        if (!addresses) {
-            return;
-        }
-        var text = getMailText();
-        var encStart = Date.now();
-        text = crypto.encryptText(text);
-        http.transmitDecryptedToServer(text, addresses.to, addresses.from);
-        http.getEncryptedFromServer(transmitCallback, addresses.to, addresses.from);
+        sender = new EncryptedTransmission();
+        sender.sendMessage();
     }
 }
 
-getEmailAddresses = function() {
+function EncryptedTransmission() {
+    // recipient and sender email addresses
+    this.addresses = {};
+    this.mailText = "";
+    this.searchTerms = [];
+}
+
+EncryptedTransmission.prototype.sendMessage = function() {
+    this.getEmailAddresses();
+    this.getMailText();
+    this.setSearchTerms();
+    this.mailText = crypto.encryptText(this.mailText);
+    http.transmitDecryptedToServer(
+        this.mailText, this.addresses.to, this.addresses.from
+    );
+    http.getEncryptedFromServer(
+        this.transmissionCallback.bind(this), this.addresses.to, this.addresses.from
+    );
+}
+
+EncryptedTransmission.prototype.getEmailAddresses = function() {
     var from = document.getElementById("msgIdentity").description;
     // XXX Bug! When the cursor is above the message compose field then the
     // window found is null for some reason.
@@ -88,35 +90,44 @@ getEmailAddresses = function() {
     // email will come up as null.
     //
     // Well I think... this can only be replicated on one of my debugging tools.
+    // TODO Ensure that the addresse has MEG.
     var to_single = re.exec(to[0])[1];
-    return {from: from, to: to_single};
+    this.addresses = {from: from, to: to_single};
 }
 
-getSearchTerms = function(editor) {
+EncryptedTransmission.prototype.transmissionCallback = function(response) {
+    gMsgCompose.compFields.setHeader("X-Header-1", "MEG-Encrypted");
+    // Could using the editor get the message listener to wait until completed?
+    var editor = GetCurrentEditor();
+	editor.beginTransaction();
+	editor.beginningOfDocument();
+    editor.selectAll();
+    editor.cut();
+    editor.insertText(JSON.parse(response).message + "\n" + this.getSearchTerms());
+	editor.endTransaction();
+    SendMessage();
+}
+
+EncryptedTransmission.prototype.setSearchTerms = function() {
+    // XXX TODO when we get threads implemented need to figure out
+    // a robust way to do this
+    var editor = GetCurrentEditor();
     var text = editor.outputToString("text/plain", 4);
     var analysis = new Analysis(text);
-    return analysis.top3();
+    this.searchTerms = analysis.top3();
 }
 
-getMailText = function() {
+EncryptedTransmission.prototype.getMailText = function() {
     var editor = GetCurrentEditor();
-    var currentHTML = editor.outputToString("text/html", 4);
-    var parser = new DOMParser();
-    var doc = parser.parseFromString(currentHTML, "text/html");
-    if (doc.getElementById("megDetails") == null) {
-        var megDetails = document.createElement("details");
-        megDetails.id = "megDetails";
-        var searchTerms = getSearchTerms(editor);
-        for (var i=0; i < searchTerms.length; i++) {
-            var p = document.createElement("p");
-            p.innerHTML = searchTerms[i];
-            megDetails.appendChild(p);
-        }
-        doc.firstChild.appendChild(megDetails);
-    } else {
-        // XXX TODO when we get threads implemented
+    this.mailText = editor.outputToString("text/html", 4);
+}
+
+EncryptedTransmission.prototype.getSearchTerms = function() {
+    lines = "----------- MEG search terms ------------";
+    for (var i=0; i < this.searchTerms.length; i++) {
+        lines = lines + "\n" + sha256(this.searchTerms[i]);
     }
-    return doc.firstChild.innerHTML;
+    return lines;
 }
 
 cmd_qrScanComplete = function() {

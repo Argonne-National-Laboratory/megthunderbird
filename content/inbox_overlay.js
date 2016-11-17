@@ -1,5 +1,7 @@
 const Cu = Components.utils;
 const Cc = Components.classes;
+const SEARCH_TERM_HEADER = "----------- MEG search terms ------------";
+
 Cu.import("chrome://megthunderbird/content/db.js");
 Cu.import("chrome://megthunderbird/content/crypto.js");
 Cu.import("chrome://megthunderbird/content/http.js");
@@ -13,6 +15,7 @@ let listener = Components.classes["@mozilla.org/network/sync-stream-listener;1"]
 let ioService = Components.classes["@mozilla.org/network/io-service;1"]
     .getService(Components.interfaces.nsIIOService);
 let searchCmd = "document.getElementById('searchInput').doSearch();"
+
 
 megSearch = function(event) {
     if (event.keyCode == 13) {
@@ -45,10 +48,12 @@ getMessageText = function(msgHdr, stripHTML, length) {
         uri, listener, null, null, false, ""
     );
     let folder = msgHdr.folder;
-    return folder.getMsgTextFromStream(
+    var mailText = folder.getMsgTextFromStream(
         listener.inputStream, msgHdr.Charset, 2 * length,
         length, false, stripHTML, { }
     );
+    var searchStart = mailText.indexOf("\n" + SEARCH_TERM_HEADER);
+    return mailText.slice(0, searchStart);
 }
 
 decryptorCallback = function(text) {

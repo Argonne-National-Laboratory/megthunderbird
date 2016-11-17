@@ -52,12 +52,10 @@ HTTP.prototype.transmit = function(text, email_to, email_from, api, action) {
             case 'load':
                 if (xhr.status == 200) {
                     // Do we need a successCb here??
-                    Cu.reportError("Transmit time: " + parseInt(Date.now() - start));
                     break;
                 }
             default:
                 // TODO should probably add retry logic before we die
-                Cu.reportError("transmit failure time: " + parseInt(Date.now() - start));
                 Services.prompt.alert(null, 'Error Contacting MEG', 'Error Sending Message For Encryption. Retry: ' + xhr.statusText + ' [' + ev.type + ':' + xhr.status + ']');
                 break;
         }
@@ -125,7 +123,6 @@ HTTP.prototype._retrieve = function(successCb, timer, email_to, email_from, api)
                 if (xhr.status == 200) {
                     timer.cancel();
                     successCb(xhr.response);
-                    Cu.reportError("retrieve_ success time: " + parseInt(Date.now() - start));
                     break;
                 }
             default:
@@ -142,7 +139,6 @@ HTTP.prototype._retrieve = function(successCb, timer, email_to, email_from, api)
                 // Whatever... punt for now and just implement deletion of messages.
                 // zombie messages will have to wait. The dirtiest thing that we can do is
                 // just to introduce some kind of TTL for the message in the database.
-                Cu.reportError("Could not get email from server; retrying");
                 this.retries += 1;
                 if (this.retries > HTTP_MAX_RETRIES) {
                     // reset retries for future attempts
@@ -158,7 +154,6 @@ HTTP.prototype._retrieve = function(successCb, timer, email_to, email_from, api)
                     );
                     break;
                 }
-                Cu.reportError("retrieve_ failure time: " + parseInt(Date.now() - start));
                 break;
         }
     };
