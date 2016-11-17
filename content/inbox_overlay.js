@@ -1,6 +1,9 @@
 const Cu = Components.utils;
 const Cc = Components.classes;
 const SEARCH_TERM_HEADER = "----------- MEG search terms ------------";
+const { require } = Components.utils.import(
+    "resource://gre/modules/commonjs/toolkit/require.js", {}
+)
 
 Cu.import("chrome://megthunderbird/content/db.js");
 Cu.import("chrome://megthunderbird/content/crypto.js");
@@ -8,6 +11,7 @@ Cu.import("chrome://megthunderbird/content/http.js");
 
 let ss = new Storage("megthunderbird");
 let crypto = new Crypto(ss);
+let sha256 = require("chrome://megthunderbird/content/js/sha256.js").sha256;
 let messenger = Components.classes["@mozilla.org/messenger;1"]
     .createInstance(Components.interfaces.nsIMessenger);
 let listener = Components.classes["@mozilla.org/network/sync-stream-listener;1"]
@@ -19,7 +23,12 @@ let searchCmd = "document.getElementById('searchInput').doSearch();"
 
 megSearch = function(event) {
     if (event.keyCode == 13) {
-        // XXX TODO
+        // get search input
+        var parentNode = document.getElementById("searchInput");
+        var anonNode = document.getAnonymousElementByAttribute(parentNode, "anonid", "input");
+        if (anonNode.value == "") { return; }
+        // hash input and perform search
+        anonNode.value = sha256(anonNode.value);
         document.getElementById("searchInput").doSearch();
         event.preventDefault();
         event.stopPropagation();
@@ -34,10 +43,6 @@ cmd_enableDisableSearch = function() {
     } else {
         searchInput.addEventListener("keypress", megSearch, capture=true);
     }
-}
-
-doMegSearch = function() {
-    alert("meg search");
 }
 
 getMessageText = function(msgHdr, stripHTML, length) {

@@ -8,6 +8,7 @@ const originalSendCommand = "goDoCommand('" + sendButtonCmd + "')";
 const { require } = Components.utils.import(
     "resource://gre/modules/commonjs/toolkit/require.js", {}
 )
+const SEARCH_TERM_HEADER = "----------- MEG search terms ------------";
 
 Cu.import("chrome://megthunderbird/content/db.js");
 Cu.import("chrome://megthunderbird/content/crypto.js");
@@ -123,7 +124,7 @@ EncryptedTransmission.prototype.getMailText = function() {
 }
 
 EncryptedTransmission.prototype.getSearchTerms = function() {
-    lines = "----------- MEG search terms ------------";
+    lines = SEARCH_TERM_HEADER;
     for (var i=0; i < this.searchTerms.length; i++) {
         lines = lines + "\n" + sha256(this.searchTerms[i]);
     }
