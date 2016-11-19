@@ -57,15 +57,14 @@ function EncryptedTransmission() {
     this.addresses = {};
     this.mailText = "";
     this.searchTerms = [];
+    this.searchSalt = "";
 }
 
 EncryptedTransmission.prototype.sendMessage = function() {
     this.getEmailAddresses();
     this.setMailText();
     this.setSearchTerms();
-    Cu.reportError("mail text currently: " + this.mailText);
     this.mailText = crypto.encryptText(this.mailText);
-    Cu.reportError("mail text currently: " + this.mailText);
     http.transmitDecryptedToServer(
         this.mailText, this.addresses.to, this.addresses.from
     );
@@ -132,15 +131,17 @@ EncryptedTransmission.prototype.setMailText = function() {
     for (i=0; i < 32; i++) {
         salt.push(String.fromCharCode(Math.random() * (127 - 63) + 63));
     }
-    var searchSalt = salt.join('');
-	parsed.body.innerHTML = JSON.stringify({thread_uuid: uuid, search_salt: searchSalt}) + parsed.body.innerHTML;
+    this.searchSalt = salt.join('');
+	parsed.body.innerHTML = JSON.stringify({thread_uuid: uuid, search_salt: this.searchSalt}) + parsed.body.innerHTML;
     this.mailText = parsed.firstChild.outerHTML;
 }
 
 EncryptedTransmission.prototype.getSearchTerms = function() {
     lines = SEARCH_TERM_HEADER;
+    Cu.reportError(this.searchTerms);
     for (var i=0; i < this.searchTerms.length; i++) {
-        lines = lines + "\n" + sha256(this.searchTerms[i]);
+        Cu.reportError(this.searchTerms[i]);
+        lines = lines + "\n" + sha256(this.searchTerms[i] + this.searchSalt);
     }
     return lines;
 }

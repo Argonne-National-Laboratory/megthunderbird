@@ -9,6 +9,7 @@ Cu.import("chrome://megthunderbird/content/db.js");
 Cu.import("chrome://megthunderbird/content/crypto.js");
 Cu.import("chrome://megthunderbird/content/http.js");
 
+let ss = new Storage();
 let sha256 = require("chrome://megthunderbird/content/js/sha256.js").sha256;
 let messenger = Components.classes["@mozilla.org/messenger;1"]
     .createInstance(Components.interfaces.nsIMessenger);
@@ -19,6 +20,18 @@ let ioService = Components.classes["@mozilla.org/network/io-service;1"]
 let searchCmd = "document.getElementById('searchInput').doSearch();"
 
 
+searchAllThreads = function(searchTerm) {
+    var salts = ss.getSearchSalts();
+    var terms = ss.getSearchTerms();
+    for(i=0; i < salts.length; i++) {
+        var sha = sha256(searchTerm + salts[i].salt);
+        if (terms.indexOf(sha) != -1) {
+            return sha;
+        }
+    }
+    return searchTerm;
+}
+
 megSearch = function(event) {
     if (event.keyCode == 13) {
         // get search input
@@ -26,7 +39,7 @@ megSearch = function(event) {
         var anonNode = document.getAnonymousElementByAttribute(parentNode, "anonid", "input");
         if (anonNode.value == "") { return; }
         // hash input and perform search
-        anonNode.value = sha256(anonNode.value);
+        anonNode.value = searchAllThreads(anonNode.value);
         document.getElementById("searchInput").doSearch();
         event.preventDefault();
         event.stopPropagation();
@@ -44,8 +57,7 @@ cmd_enableDisableSearch = function() {
 }
 
 function Decryptor() {
-    this.ss = new Storage();
-    this.crypto = new Crypto(this.ss);
+    this.crypto = new Crypto(ss);
     this.searchFooter = "";
 }
 
@@ -71,13 +83,13 @@ Decryptor.prototype.stripAndStoreSearchDetails = function(plain) {
     var idx = parsed.body.innerHTML.indexOf("}<");
     var json = JSON.parse(parsed.body.innerHTML.slice(0, idx + 1));
     parsed.body.innerHTML = parsed.body.innerHTML.slice(idx + 1, parsed.body.innerHTML.length);
-    if (!this.ss.hasSearchSalt(json.thread_uuid)) {
-        this.ss.setSalt(json.thread_uuid, json.search_salt);
+    if (!ss.hasSearchSalt(json.thread_uuid)) {
+        ss.setSalt(json.thread_uuid, json.search_salt);
     }
     var splitTerms = this.searchFooter.split("\n");
     for (i=2; i < splitTerms.length; i++) {
-        if (!this.ss.hasSearchTerm(json.thread_uuid, splitTerms[i])) {
-            this.ss.setSearchTerm(json.thread_uuid, splitTerms[i]);
+        if (!ss.hasSearchTerm(json.thread_uuid, splitTerms[i])) {
+            ss.setSearchTerm(json.thread_uuid, splitTerms[i]);
         }
     }
     return parsed.firstChild.outerHTML;

@@ -12,7 +12,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 const KEY_PROFILEDIR = "ProfD";
 const FILE_SIMPLE_STORAGE = "simple_storage.sqlite";
 
-function Storage(aTblName) {
+function Storage() {
     this.keyTableName = "megthunderbird_keys";
     this.searchSaltTableName = "megthunderbird_search_salts";
     this.searchTableName = "megthunderbird_search";
@@ -116,6 +116,21 @@ Storage.prototype.getSearchSalt = function(threadId) {
     return value;
 }
 
+Storage.prototype.getSearchSalts = function() {
+    let statement = this.dbConnection.createStatement(
+        "SELECT * FROM #1".replace("#1", this.searchSaltTableName)
+    );
+    var results = [];
+    while (statement.executeStep()) {
+        results.push({
+            thread_id: statement.row.thread_id,
+            salt: JSON.parse(statement.row.salt).value
+        });
+    }
+    statement.reset();
+    return results;
+}
+
 Storage.prototype.getSearchTerm = function(threadId, term) {
     let statement = this.dbConnection.createStatement(
         "SELECT search_term FROM #1 WHERE thread_id = :key AND search_term = :value".replace("#1", this.searchTableName)
@@ -131,13 +146,14 @@ Storage.prototype.getSearchTerm = function(threadId, term) {
 
 Storage.prototype.getSearchTerms = function() {
     let statement = this.dbConnection.createStatement(
-        "SELECT search_term FROM #1".replace("#1", this.searchSaltTableName)
+        "SELECT search_term FROM #1".replace("#1", this.searchTableName)
     );
+    var results = [];
     while (statement.executeStep()) {
-        var value = statement.row.search_term;
+        results.push(statement.row.search_term);
     }
     statement.reset();
-    return value;
+    return results;
 }
 
 Storage.prototype.removeKey = function(aKey) {
@@ -146,4 +162,8 @@ Storage.prototype.removeKey = function(aKey) {
     statement.params.key = aKey;
     // TODO need to figure out err handling. Or you can always just use SimpleSQL
     while (statement.executeStep()) {}
+}
+
+Storage.prototype.close = function() {
+    this.dbConnection.close();
 }
