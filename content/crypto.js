@@ -27,9 +27,9 @@ function Crypto(dbConnection) {
 }
 
 Crypto.prototype.getAESData = function() {
-    var keyData = this.ss.get(DB_AES_KEY);
+    var keyData = this.ss.getKey(DB_AES_KEY);
     var arr = JSON.parse(keyData).value.split("&&");
-    var saltData = this.ss.get(DB_SALT_KEY);
+    var saltData = this.ss.getKey(DB_SALT_KEY);
     var salt = b64decode(JSON.parse(saltData).value);
     var key = GibberishAES.Base64.decode(arr[0]);
     var iv = GibberishAES.Base64.decode(arr[1]);
@@ -37,7 +37,7 @@ Crypto.prototype.getAESData = function() {
 }
 
 Crypto.prototype.hasKey = function() {
-    return this.ss.has(DB_AES_KEY);
+    return this.ss.hasKey(DB_AES_KEY);
 }
 
 /**
@@ -95,6 +95,6 @@ Crypto.prototype.randArr = function(num) {
 }
 
 Crypto.prototype.storeKey = function() {
-    this.ss.set(DB_AES_KEY, this.keyStr);
-    this.ss.set(DB_SALT_KEY, b64encode(this.salt));
+    this.ss.setKey(DB_AES_KEY, this.keyStr);
+    this.ss.setKey(DB_SALT_KEY, b64encode(this.salt));
 }

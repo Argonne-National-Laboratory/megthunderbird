@@ -16,7 +16,7 @@ Cu.import("chrome://megthunderbird/content/http.js");
 Cu.import("chrome://megthunderbird/content/frequency.js");
 
 let sha256 = require("chrome://megthunderbird/content/js/sha256.js").sha256;
-let ss = new Storage("megthunderbird");
+let ss = new Storage();
 let crypto = new Crypto(ss);
 let http = new HTTP();
 
@@ -37,8 +37,8 @@ cmd_enableDisable = function() {
 debugRemoveSymmetricKey = function() {
     var DB_AES_KEY = "aeskeyStr";
     var DB_SALT_KEY = "salt";
-    ss.remove(DB_AES_KEY);
-    ss.remove(DB_SALT_KEY);
+    ss.removeKey(DB_AES_KEY);
+    ss.removeKey(DB_SALT_KEY);
 }
 
 cmd_megSendButton = function() {
@@ -61,9 +61,11 @@ function EncryptedTransmission() {
 
 EncryptedTransmission.prototype.sendMessage = function() {
     this.getEmailAddresses();
-    this.getMailText();
+    this.setMailText();
     this.setSearchTerms();
+    Cu.reportError("mail text currently: " + this.mailText);
     this.mailText = crypto.encryptText(this.mailText);
+    Cu.reportError("mail text currently: " + this.mailText);
     http.transmitDecryptedToServer(
         this.mailText, this.addresses.to, this.addresses.from
     );
@@ -118,9 +120,21 @@ EncryptedTransmission.prototype.setSearchTerms = function() {
     this.searchTerms = analysis.top3();
 }
 
-EncryptedTransmission.prototype.getMailText = function() {
+EncryptedTransmission.prototype.setMailText = function() {
     var editor = GetCurrentEditor();
-    this.mailText = editor.outputToString("text/html", 4);
+    var text = editor.outputToString("text/html", 4);
+    var parsed = new DOMParser().parseFromString(text, "text/html");
+   	var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    	var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+    	return v.toString(16);
+	});
+    var salt = [];
+    for (i=0; i < 32; i++) {
+        salt.push(String.fromCharCode(Math.random() * (127 - 63) + 63));
+    }
+    var searchSalt = salt.join('');
+	parsed.body.innerHTML = JSON.stringify({thread_uuid: uuid, search_salt: searchSalt}) + parsed.body.innerHTML;
+    this.mailText = parsed.firstChild.outerHTML;
 }
 
 EncryptedTransmission.prototype.getSearchTerms = function() {

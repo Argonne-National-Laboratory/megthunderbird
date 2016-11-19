@@ -9,8 +9,6 @@ Cu.import("chrome://megthunderbird/content/db.js");
 Cu.import("chrome://megthunderbird/content/crypto.js");
 Cu.import("chrome://megthunderbird/content/http.js");
 
-let ss = new Storage("megthunderbird");
-let crypto = new Crypto(ss);
 let sha256 = require("chrome://megthunderbird/content/js/sha256.js").sha256;
 let messenger = Components.classes["@mozilla.org/messenger;1"]
     .createInstance(Components.interfaces.nsIMessenger);
@@ -45,7 +43,13 @@ cmd_enableDisableSearch = function() {
     }
 }
 
-getMessageText = function(msgHdr, stripHTML, length) {
+function Decryptor() {
+    this.ss = new Storage();
+    this.crypto = new Crypto(this.ss);
+    this.searchFooter = "";
+}
+
+Decryptor.prototype.getMessageText = function(msgHdr, stripHTML, length) {
     let messenger = Cc["@mozilla.org/messenger;1"].createInstance(Ci.nsIMessenger);
     let listener = Cc["@mozilla.org/network/sync-stream-listener;1"].createInstance(Ci.nsISyncStreamListener);
     let uri = msgHdr.folder.getUriForMsg(msgHdr);
@@ -58,30 +62,51 @@ getMessageText = function(msgHdr, stripHTML, length) {
         length, false, stripHTML, { }
     );
     var searchStart = mailText.indexOf("\n" + SEARCH_TERM_HEADER);
+    this.searchFooter = mailText.slice(searchStart, mailText.length)
     return mailText.slice(0, searchStart);
 }
 
-decryptorCallback = function(text) {
+Decryptor.prototype.stripAndStoreSearchDetails = function(plain) {
+    parsed = new DOMParser().parseFromString(plain, "text/html");
+    var idx = parsed.body.innerHTML.indexOf("}<");
+    var json = JSON.parse(parsed.body.innerHTML.slice(0, idx + 1));
+    parsed.body.innerHTML = parsed.body.innerHTML.slice(idx + 1, parsed.body.innerHTML.length);
+    if (!this.ss.hasSearchSalt(json.thread_uuid)) {
+        this.ss.setSalt(json.thread_uuid, json.search_salt);
+    }
+    var splitTerms = this.searchFooter.split("\n");
+    for (i=2; i < splitTerms.length; i++) {
+        if (!this.ss.hasSearchTerm(json.thread_uuid, splitTerms[i])) {
+            this.ss.setSearchTerm(json.thread_uuid, splitTerms[i]);
+        }
+    }
+    return parsed.firstChild.outerHTML;
+}
+
+Decryptor.prototype.httpCallback = function(text) {
     var message = JSON.parse(text).message;
-    var decStart = Date.now();
-    var plain = crypto.decryptText(message);
+    var plain = this.crypto.decryptText(message);
+    plain = this.stripAndStoreSearchDetails(plain);
     var content = document.getElementById("messagepane").contentWindow.document;
     var div = content.getElementsByClassName("moz-text-flowed")[0]
         || content.getElementsByClassName("moz-text-plain")[0];
     div.innerHTML = plain;
 }
 
+Decryptor.prototype.decrypt = function(msgHdr) {
+    var text = this.getMessageText(msgHdr, true, 32768);
+    var re = /<(.+)>/;
+    var author = re.exec(msgHdr.author)[1];
+    var recipient = re.exec(msgHdr.recipients.trim())[1];
+    var http = new HTTP();
+    http.transmitEncryptedToServer(text, recipient, author);
+    http.getDecryptedFromServer(this.httpCallback.bind(this), recipient, author);
+}
+
 shouldDecryptCallback = function(msgHdr, aMimeMsg) {
     if (aMimeMsg.get('x-header-1') == "MEG-Encrypted") {
-        // TODO Eventually we will want to declare false here to not strip html
-        var start = Date.now();
-        var text = getMessageText(msgHdr, true, 32768);
-        var re = /<(.+)>/;
-        var author = re.exec(msgHdr.author)[1];
-        var recipient = re.exec(msgHdr.recipients.trim())[1];
-        var http = new HTTP();
-        http.transmitEncryptedToServer(text, recipient, author);
-        http.getDecryptedFromServer(decryptorCallback, recipient, author);
+        decryptor = new Decryptor();
+        decryptor.decrypt(msgHdr);
     }
 }
 

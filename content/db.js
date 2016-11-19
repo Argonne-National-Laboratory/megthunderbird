@@ -13,7 +13,9 @@ const KEY_PROFILEDIR = "ProfD";
 const FILE_SIMPLE_STORAGE = "simple_storage.sqlite";
 
 function Storage(aTblName) {
-    this.tableName = aTblName;
+    this.keyTableName = "megthunderbird_keys";
+    this.searchSaltTableName = "megthunderbird_search_salts";
+    this.searchTableName = "megthunderbird_search";
     this.init();
 }
 
@@ -21,28 +23,50 @@ Storage.prototype.init = function() {
     this.dbConnection = Services.storage.openDatabase(
         FileUtils.getFile(KEY_PROFILEDIR, [FILE_SIMPLE_STORAGE])
     );
-    if (!this.dbConnection.tableExists(this.tableName)) {
+    if (!this.dbConnection.tableExists(this.keyTableName)) {
         this.dbConnection.executeSimpleSQL(
-          "CREATE TABLE #1 (key TEXT PRIMARY KEY, value TEXT)".replace("#1", this.tableName)
+            "CREATE TABLE #1 (key TEXT PRIMARY KEY, value TEXT)".replace("#1", this.keyTableName)
         );
-    } else {
-
+    }
+    if (!this.dbConnection.tableExists(this.searchTableName)) {
+        // XXX should probably have thread_id as and index
+        this.dbConnection.executeSimpleSQL(
+            "CREATE TABLE #1 (id INTEGER PRIMARY KEY NOT NULL, thread_id TEXT, search_term TEXT)".replace("#1", this.searchTableName)
+        );
+    }
+    if (!this.dbConnection.tableExists(this.searchSaltTableName)) {
+        this.dbConnection.executeSimpleSQL(
+            "CREATE TABLE #1 (thread_id TEXT PRIMARY KEY, salt TEXT)".replace("#1", this.searchSaltTableName)
+        );
     }
 }
 
-Storage.prototype.set = function(aKey, aValue) {
-    // TODO Later we can perform the update step if the user screws up their
-    // registration
+Storage.prototype.setKey = function(aKey, aValue) {
     let query = "INSERT INTO #1 (key, value) VALUES (:key, :value)";
-    let statement = this.dbConnection.createStatement(query.replace("#1", this.tableName));
+    let statement = this.dbConnection.createStatement(query.replace("#1", this.keyTableName));
     statement.params.key = aKey;
     statement.params.value = JSON.stringify({ value: aValue });
-    // TODO figure out err handling or use SimpleSQL
     while (statement.executeStep()) {}
 }
 
-Storage.prototype.has = function(aKey) {
-    var value = this.get(aKey);
+Storage.prototype.setSalt = function(threadId, salt) {
+    let query = "INSERT INTO #1 (thread_id, salt) VALUES (:key, :value)";
+    let statement = this.dbConnection.createStatement(query.replace("#1", this.searchSaltTableName));
+    statement.params.key = threadId;
+    statement.params.value = JSON.stringify({ value: salt });
+    while (statement.executeStep()) {}
+}
+
+Storage.prototype.setSearchTerm = function(threadId, term) {
+    let query = "INSERT INTO #1 (thread_id, search_term) VALUES (:key, :value)";
+    let statement = this.dbConnection.createStatement(query.replace("#1", this.searchTableName));
+    statement.params.key = threadId;
+    statement.params.value = term;
+    while (statement.executeStep()) {}
+}
+
+Storage.prototype.hasKey = function(aKey) {
+    var value = this.getKey(aKey);
     if (value == null) {
         return false;
     } else {
@@ -50,9 +74,27 @@ Storage.prototype.has = function(aKey) {
     }
 }
 
-Storage.prototype.get = function(aKey) {
+Storage.prototype.hasSearchSalt = function(threadId) {
+    var value = this.getSearchSalt(threadId);
+    if (value == null) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+Storage.prototype.hasSearchTerm = function(threadId, term) {
+    var value = this.getSearchTerm(threadId, term);
+    if (value == null) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+Storage.prototype.getKey = function(aKey) {
     let statement = this.dbConnection.createStatement(
-        "SELECT value FROM #1 WHERE key = :key".replace("#1", this.tableName)
+        "SELECT value FROM #1 WHERE key = :key".replace("#1", this.keyTableName)
     );
     statement.params.key = aKey
     while (statement.executeStep()) {
@@ -62,9 +104,45 @@ Storage.prototype.get = function(aKey) {
     return value;
 }
 
-Storage.prototype.remove = function(aKey) {
+Storage.prototype.getSearchSalt = function(threadId) {
+    let statement = this.dbConnection.createStatement(
+        "SELECT salt FROM #1 WHERE thread_id = :key".replace("#1", this.searchSaltTableName)
+    );
+    statement.params.key = threadId;
+    while (statement.executeStep()) {
+        var value = statement.row.salt;
+    }
+    statement.reset();
+    return value;
+}
+
+Storage.prototype.getSearchTerm = function(threadId, term) {
+    let statement = this.dbConnection.createStatement(
+        "SELECT search_term FROM #1 WHERE thread_id = :key AND search_term = :value".replace("#1", this.searchTableName)
+    );
+    statement.params.key = threadId;
+    statement.params.value = term;
+    while (statement.executeStep()) {
+        var value = statement.row.search_term;
+    }
+    statement.reset();
+    return value;
+}
+
+Storage.prototype.getSearchTerms = function() {
+    let statement = this.dbConnection.createStatement(
+        "SELECT search_term FROM #1".replace("#1", this.searchSaltTableName)
+    );
+    while (statement.executeStep()) {
+        var value = statement.row.search_term;
+    }
+    statement.reset();
+    return value;
+}
+
+Storage.prototype.removeKey = function(aKey) {
     let query = "DELETE FROM #1 WHERE key = :key";
-    let statement = this.dbConnection.createStatement(query.replace("#1", this.tableName));
+    let statement = this.dbConnection.createStatement(query.replace("#1", this.keyTableName));
     statement.params.key = aKey;
     // TODO need to figure out err handling. Or you can always just use SimpleSQL
     while (statement.executeStep()) {}
